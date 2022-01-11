@@ -1257,6 +1257,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256 private secondaryClaimsCompleted;
     uint256 private requiredBytesToMint;
     uint256 private mintFee;
+    uint256 private personnelMintsRemaining = 500;
+    uint256 private blackMetaMintsRemaining = 2500;
 
     string private backgroundImageLink;
 
@@ -1647,6 +1649,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     // temp
     function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) public payable nonReentrant {
         uint256 doesOwnToken = 0;
+        require(personnelMintsRemaining > 0, "Personell limit reached.");
+        personnelMintsRemaining -= 1;
+
         for(uint256 i=0; i< BlackMetaIdentityContract.balanceOf(msg.sender);i++){
             if(BlackMetaIdentityContract.tokenOfOwnerByIndex(msg.sender, i) == _BlackMetaIdentity){
                 doesOwnToken = 1;
@@ -1749,6 +1754,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //        require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
 
         uint256 doesOwnToken = 0;
+        require(blackMetaMintsRemaining > 0, "Personell limit reached.");
+        blackMetaMintsRemaining -= 1;
+
         for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
             if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
                 doesOwnToken = 1;
