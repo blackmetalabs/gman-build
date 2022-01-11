@@ -1258,6 +1258,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256 private requiredBytesToMint;
     uint256 private mintFee;
 
+    string private backgroundImageLink;
+
     mapping(uint256 => uint256) private tokenIdToPackedData; // compressed data for NFT
     mapping(uint256 => uint256) private tokenIdToNeoCitizenClaimedStatus; // compressed data for NFT
     mapping(uint256 => uint256) private tokenIdToBlackMetaIdentityClaimedStatus; // compressed data for NFT
@@ -1832,13 +1834,14 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         citizenContractAddress = contractAddress;
     }
 
-    constructor(address _BytesAddress, address _NeoTokyoAddress) ERC721("Black Meta Multipass", "BMPASS") Ownable() {
+    constructor(address _BytesAddress, address _NeoTokyoAddress, string memory _backgroundImageLink) ERC721("Black Meta Multipass", "BMPASS") Ownable() {
 //        bytesContractAddress = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
         bytesContractAddress = _BytesAddress;
         BytesERC20 = IERC20(_BytesAddress);
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
         NeoTokyoContract = IERC721Enumerable(_NeoTokyoAddress);
         requiredBytesToMint = 25;
+        backgroundImageLink = _backgroundImageLink;
     }
 
     // Required to receive ETH
@@ -1894,8 +1897,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         string memory style = string(abi.encodePacked(
           "%3Cstyle%3E",
+                "@import url('https://fonts.googleapis.com/css2?family=VT323');",
                 ".bm %7B",
-                    "font-family: 'Courier New';",
+//                    "font-family: 'Courier New';",
+                    "font-family: 'VT323', monospace;",
                     "font-size:12px;",
                     "fill: hsl(80,61%25,50%25);%7D",
                 "%7D",
@@ -1968,7 +1973,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         // todo -- updateable link
         mainImage = string(abi.encodePacked(
-            "%3Cimage xlink:href='https://gateway.pinata.cloud/ipfs/QmcGVfK6SW45GFCQZLHe32myGvo6MXaEUerRAWTWM3UHtu' width='600' height='600' /%3E"
+            "%3Cimage xlink:href='", backgroundImageLink ,"' width='600' height='600' /%3E"
         ));
 
         string memory SVG = string(abi.encodePacked(
@@ -2059,15 +2064,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// Admin Functions /////////
     ///////////////////////////////////
 
-    // todo -- create this structure, think of what coins will be needed. Bytes--or are they all burnt? ETH?
-    function releaseOwnerProfits() public {
-        require(msg.sender==owner());
-        // todo -- release profits msg.sender.call...
-        //        emit CoinsReleasedToProfitReceiver(ETHReceived, stableCoinSent, profitReceiver, block.timestamp);
-    }
-
-    function addToWhiteList(address[] calldata _whiteListAdditions) external { // todo-- make value for these
-        require(msg.sender==owner());
+    function addToWhiteList(address[] calldata _whiteListAdditions) external onlyOwner { // todo-- make value for these
+//        require(msg.sender==owner());
         whiteListCount += 1;
         for(uint256 i; i < _whiteListAdditions.length; i++){
             if(whiteList[_whiteListAdditions[i]]==0){
@@ -2076,15 +2074,14 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         }
     }
 
-    function removeFromWhiteList(address[] calldata _whiteListSubtractions) external {
-        require(msg.sender==owner());
+    function removeFromWhiteList(address[] calldata _whiteListSubtractions) external onlyOwner {
+//        require(msg.sender==owner());
         for(uint256 i; i < _whiteListSubtractions.length; i++){
             if(whiteList[_whiteListSubtractions[i]]==1){
                 whiteList[_whiteListSubtractions[i]] = 0;
             }
         }
     }
-
 
     function withdrawBytes( address _recipient) external onlyOwner nonReentrant {
         uint256 _BytesReleased = BytesERC20.balanceOf(address(this));
@@ -2111,19 +2108,23 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         BlackMetaIdentityContract = IERC721Enumerable(_contractAddress);
     }
 
-    function setOGPrivilege(uint256 _OGPrivilege) public onlyOwner {
+    function setOGPrivilege(uint256 _OGPrivilege) external onlyOwner {
         require(_OGPrivilege < 2, "must be 1 or 0");
         OGPrivilege = _OGPrivilege;
     }
 
-    function setMintFee(uint256 _mintFee) public onlyOwner {
+    function setMintFee(uint256 _mintFee) external onlyOwner {
         mintFee = _mintFee;
     }
 
-    function setRequiredBytesToMint(uint256 _requiredBytesToMint) public onlyOwner {
+    function setRequiredBytesToMint(uint256 _requiredBytesToMint) external onlyOwner {
         requiredBytesToMint = _requiredBytesToMint;
     }
 
+
+    function setBackgroundImageLink(string memory _backgroundImageLink) external onlyOwner {
+        backgroundImageLink = _backgroundImageLink;
+    }
 
     ////////////////////////////////////
     ///////// Helper Functions /////////

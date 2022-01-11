@@ -23,6 +23,7 @@ def main():
         # {"from": dev},
         token.address,
         ntc.address,
+        'https://gateway.pinata.cloud/ipfs/QmcGVfK6SW45GFCQZLHe32myGvo6MXaEUerRAWTWM3UHtu',
         {"from": accounts[0]},
         publish_source=publish_source,
     )

@@ -19,12 +19,7 @@ def main():
 
     svg = '''
 
-  <text> <textPath xlink:href="#pathA" class="bm">
-    <tspan x="0" dy="1em">A.T.H.E.N.A. 9000 OPERATING SYSTEM</tspan>
-    <tspan x="0" dy="1em">COPYRIGHT 2075-2121 BLACK META CORPORATION</tspan>
-    <tspan x="0" dy="1em">--SECURITY TERMINAL %23--</tspan>
-    </textPath>
-  </text>  
+font-family: 'VT323', monospace;
 '''
 
 
