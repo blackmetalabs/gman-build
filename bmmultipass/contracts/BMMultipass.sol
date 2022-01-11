@@ -1255,7 +1255,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256 public tokenCounter;
     uint256 private primaryClaimsCompleted;
     uint256 private secondaryClaimsCompleted;
-
+    uint256 private requiredBytesToMint;
+    uint256 private mintFee;
 
     mapping(uint256 => uint256) private tokenIdToPackedData; // compressed data for NFT
     mapping(uint256 => uint256) private tokenIdToNeoCitizenClaimedStatus; // compressed data for NFT
@@ -1296,8 +1297,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         LevelFour, LevelThree, LevelTwo, LevelOne}
 
     enum DataProperties {clearanceLevel, station, securityTerminal, xenGroup, command, response, rarity}
-
-    uint256 private mintFee = 10**12;
 
     string[] private clearanceLevels = [
         "G-man",
@@ -1549,7 +1548,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// Set Functions /////////
     //////////////////////////////////
 
-    // todo
+    // todo -- this has been ignored because no real use, atm
 //    function setDefaultCitizenId(uint256 _citizenId) public {
 //        // require ownership of this NFT
 //        // require ownership of _citizenId
@@ -1561,6 +1560,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// Core Functions /////////
     //////////////////////////////////
 
+    // does not take into account OG status (no level1)
     function getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) view external returns(string[] memory) {
         uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_Bytes);
         string[] memory availableClearanceLevelNames = new string[](availableClearanceLevels.length);
@@ -1595,18 +1595,23 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             minLevel = 9;
         }
         else {
-            minLevel = 12;
+            if(OGPrivilege == 1 && whiteList[msg.sender] < 251){ //
+                minLevel == 11;
+            }
+            else {
+                minLevel = 12;
+            }
         }
 
         for(uint256 i=0; i <= minLevel; i++){
-            if(_Bytes==25 ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
+            if(_Bytes==requiredBytesToMint ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
                 _count+=1;
             }
         }
 
         availableClearanceLevels = new uint256[](_count);
         for(uint256 i=0; i <= minLevel; i++){
-            if(_Bytes==25 ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
+            if(_Bytes==requiredBytesToMint ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
                 availableClearanceLevels[_counter] = i;
                 _counter += 1;
             }
@@ -1637,7 +1642,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         }
     }
 
-
     function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) public payable nonReentrant {
         uint256 doesOwnToken = 0;
         for(uint256 i=0; i< BlackMetaIdentityContract.balanceOf(msg.sender);i++){
@@ -1647,30 +1651,20 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             }
         }
         require(doesOwnToken==1, "Not Owner of this token.");
-        require(tokenIdToNeoCitizenClaimedStatus[_BlackMetaIdentity]==0, "Citizen already Claimed");
+        require(tokenIdToBlackMetaIdentityClaimedStatus[_BlackMetaIdentity]==0, "Citizen already Claimed");
+        tokenIdToBlackMetaIdentityClaimedStatus[_BlackMetaIdentity] = 1;
 
-        // todo --> _claim
+        _claim(_BytesReceived);
     }
 
-
-    function claim(uint256 _BytesReceived, uint256 _NeoTokyoCitizenId) public payable nonReentrant {
+    function _claim(uint256 _BytesReceived) internal { // removed payable
         require (msg.value >= mintFee); // todo -- confirm mint fee
-        require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= MINTOKENSTOMINT, "Insufficient Byte balance");
-
-        require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
+        require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= requiredBytesToMint, "Insufficient Byte balance");
         require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
 
-        uint256 doesOwnToken = 0;
-        for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
-            if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
-                doesOwnToken = 1;
-                break;
-            }
+        if(requiredBytesToMint > 0){
+            require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
         }
-        require(doesOwnToken==1, "Not Owner of this token.");
-        require(tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId]==0, "Citizen already Claimed");
-
-        tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId] = 1;
 
         // returns list-- could be enums -- of positions within clearanceLevels that are available, not amount available
         uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_BytesReceived); // references
@@ -1678,7 +1672,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         uint256[] memory _availTotals = new uint256[](13);
         for(uint256 i=0;i < availableClearanceLevels.length;i++){
-            if(i==12 && OGPrivilege == 1 && whiteList[msg.sender] < 251) { continue; } // no level 1 (i==12) for OG
+//            if(i==12 && OGPrivilege == 1 && whiteList[msg.sender] < 251) { continue; } moved to getAvailableClearanceLevelsGivenBytes
 
             _availTotals[i] = _BytesReceived==25 ? tierOneClearanceLevelTotals[availableClearanceLevels[i]] :
                 tierTwoClearanceLevelTotals[availableClearanceLevels[i]];
@@ -1699,7 +1693,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             // todo -- decrease trait
             if(i==0){ // clearanceLevel
                 _myData.clearanceLevel = _chooseTraitGivenArray(_availTotals); // todo
-                if(_BytesReceived==25){
+                if(_BytesReceived==requiredBytesToMint){
                     tierOneClearanceLevelTotals[_myData.clearanceLevel] -= 1;
                 }
                 else{
@@ -1739,6 +1733,98 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         emit MultipassCreated(tokenCounter, msg.sender, tokenIdToPackedData[tokenCounter], block.timestamp);
 
         tokenCounter = tokenCounter + 1;
+
+    }
+
+    function claim(uint256 _BytesReceived, uint256 _NeoTokyoCitizenId) public payable nonReentrant {
+//        require (msg.value >= mintFee); // todo -- confirm mint fee
+//        require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= requiredBytesToMint, "Insufficient Byte balance");
+
+//        if(requiredBytesToMint > 0){
+//            require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
+//        }
+//        require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
+
+        uint256 doesOwnToken = 0;
+        for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
+            if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
+                doesOwnToken = 1;
+                break;
+            }
+        }
+        require(doesOwnToken==1, "Not Owner of this token.");
+        require(tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId]==0, "Citizen already Claimed");
+        tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId] = 1;
+
+
+        _claim(_BytesReceived);
+
+//        // returns list-- could be enums -- of positions within clearanceLevels that are available, not amount available
+//        uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_BytesReceived); // references
+//        require(availableClearanceLevels.length > 0, "Minting unavailable for that amount. Try less Bytes.");
+//
+//        uint256[] memory _availTotals = new uint256[](13);
+//        for(uint256 i=0;i < availableClearanceLevels.length;i++){
+//
+//            _availTotals[i] = _BytesReceived==25 ? tierOneClearanceLevelTotals[availableClearanceLevels[i]] :
+//                tierTwoClearanceLevelTotals[availableClearanceLevels[i]];
+//        }
+//
+//        Data memory _myData = Data( {
+//            clearanceLevel:0,
+//            station:0,
+//            securityTerminal:0,
+//            xenGroup:0,
+//            command:0,
+//            response:0,
+//            rarity:0
+//        });
+//
+//        uint256 trait;
+//        for(uint256 i=0;i < 6;i++){ // 7 traits. rarity and clearanceLevel calculated elsewhere
+//            // todo -- decrease trait
+//            if(i==0){ // clearanceLevel
+//                _myData.clearanceLevel = _chooseTraitGivenArray(_availTotals); // todo
+//                if(_BytesReceived==requiredBytesToMint){
+//                    tierOneClearanceLevelTotals[_myData.clearanceLevel] -= 1;
+//                }
+//                else{
+//                    tierTwoClearanceLevelTotals[_myData.clearanceLevel] -= 1;
+//                }
+//            }
+//            if(i==1){
+//                _myData.station = _chooseTraitGivenArray(stationsRemaining);
+//                stationsRemaining[_myData.station] -= 1;
+//            }
+//            else if(i==2){
+//                _myData.securityTerminal = _chooseTraitGivenArray(securityTerminalsRemaining);
+//                securityTerminalsRemaining[_myData.securityTerminal] -= 1;
+//            }
+//            else if(i==3){
+//                _myData.xenGroup = _chooseTraitGivenArray(xenGroupsRemaining);
+//                xenGroupsRemaining[_myData.xenGroup] -= 1;
+//            }
+//            else if(i==4){
+//                _myData.command = _chooseTraitGivenArray(commandsRemaining);
+//                commandsRemaining[_myData.command] -= 1;
+//            }
+//            else if(i==5){
+//                _myData.response = _chooseTraitGivenArray(responsesRemaining);
+//                responsesRemaining[_myData.response] -= 1;
+//            }
+//        }
+//
+//        _myData.rarity = tierOneClearanceLevelTotals[_myData.clearanceLevel]*10**10
+//            + (stationTotals[_myData.station] + securityTerminalTotals[_myData.securityTerminal] + xenGroupTotals[_myData.xenGroup]
+//              + commandTotals[_myData.command] + responseTotals[_myData.response])*10**5
+//            +  3000 - (whiteList[msg.sender] < 3000 ? whiteList[msg.sender] : 3000);
+//
+//        tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
+//        _safeMint(msg.sender, tokenCounter);
+//
+//        emit MultipassCreated(tokenCounter, msg.sender, tokenIdToPackedData[tokenCounter], block.timestamp);
+//
+//        tokenCounter = tokenCounter + 1;
     }
 
     function setCitizenAddress(address contractAddress) public onlyOwner {
@@ -1751,7 +1837,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         BytesERC20 = IERC20(_BytesAddress);
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
         NeoTokyoContract = IERC721Enumerable(_NeoTokyoAddress);
-        MINTOKENSTOMINT = 25;
+        requiredBytesToMint = 25;
     }
 
     // Required to receive ETH
@@ -2025,11 +2111,16 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function setOGPrivilege(uint256 _OGPrivilege) public onlyOwner {
+        require(_OGPrivilege < 2, "must be 1 or 0");
         OGPrivilege = _OGPrivilege;
     }
 
     function setMintFee(uint256 _mintFee) public onlyOwner {
         mintFee = _mintFee;
+    }
+
+    function setRequiredBytesToMint(uint256 _requiredBytesToMint) public onlyOwner {
+        requiredBytesToMint = _requiredBytesToMint;
     }
 
 

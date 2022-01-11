@@ -53,16 +53,16 @@ def main():
         print(f'uri:\n\n{uri}\n\n')
 
     # withdraw Bytes
-    # print(f'Bytes Before: {token.balanceOf(accounts[0])}')
-    # tx = mp.withdrawBytes(accounts[0].address, {'from': accounts[0]})
-    # tx.wait(1)
-    # print(f'Bytes After: {token.balanceOf(accounts[0])}')
+    print(f'Bytes Before: {token.balanceOf(accounts[0])}')
+    tx = mp.withdrawBytes(accounts[0].address, {'from': accounts[0]})
+    tx.wait(1)
+    print(f'Bytes After: {token.balanceOf(accounts[0])}')
 
     # withdraw ETH
-    # print(f'Eth Balance Before: {mp.balance()}')
-    # tx = mp.withdrawEth(accounts[0].address, {'from': accounts[0]})
-    # print(f'Eth Balance After: {mp.balance()}')
-    # tx.wait(1)
+    print(f'Eth Balance Before: {mp.balance()}')
+    tx = mp.withdrawEth(accounts[0].address, {'from': accounts[0]})
+    print(f'Eth Balance After: {mp.balance()}')
+    tx.wait(1)
 
 
     return mp
