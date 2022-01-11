@@ -19,16 +19,12 @@ def main():
 
     svg = '''
 
-  <style>
-    .bm {
-		font-family: "Courier New";
-    	opacity:0.9;background-size:cover;
-    	font-size:20px;
-    	fill: hsl(80,61%,50%);}      
-    }    
-  </style>
-
-
+  <text> <textPath xlink:href="#pathA" class="bm">
+    <tspan x="0" dy="1em">A.T.H.E.N.A. 9000 OPERATING SYSTEM</tspan>
+    <tspan x="0" dy="1em">COPYRIGHT 2075-2121 BLACK META CORPORATION</tspan>
+    <tspan x="0" dy="1em">--SECURITY TERMINAL %23--</tspan>
+    </textPath>
+  </text>  
 '''
 
 

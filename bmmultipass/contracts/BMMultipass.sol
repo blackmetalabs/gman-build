@@ -1241,18 +1241,22 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     // todo -- make compatible if owner address has multiple citizen IDs
     // todo -- create function, setDefaultCitizenId, to allow owner to save preferences
+    // todo -- for now, there is no need. as no change in functionality.
 
-    address public multipass; // todo -- what is this? Contract from Neo tokyo
+//    address public multipass; // todo -- what is this? Contract from Neo tokyo
     address public citizenContractAddress;
     address public bytesContractAddress;
-//    uint256 public newestMultipass;
     IERC20 BytesERC20; // todo -- verify that this is IERC20 and not something similar
     IERC721Enumerable NeoTokyoContract;
     IERC721Enumerable BlackMetaIdentityContract;
 
     uint256 private whiteListCount;
-
+    uint256 private OGPrivilege = 1;
     uint256 public tokenCounter;
+    uint256 private primaryClaimsCompleted;
+    uint256 private secondaryClaimsCompleted;
+
+
     mapping(uint256 => uint256) private tokenIdToPackedData; // compressed data for NFT
     mapping(uint256 => uint256) private tokenIdToNeoCitizenClaimedStatus; // compressed data for NFT
     mapping(uint256 => uint256) private tokenIdToBlackMetaIdentityClaimedStatus; // compressed data for NFT
@@ -1267,25 +1271,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 response;
         uint256 rarity;
     }
-
-// we need to make a mapping or hold the data in an array
-//    Data tierOneRemainingTraits = Data( {
-//        clearanceLevel:3,
-//        station:1,
-//        securityTerminal:0,
-//        xenGroup:1,
-//        command:2,
-//        response:0
-//    });
-
-//    struct traitCounts {
-//        uint16[14] amount;
-//    }
-//
-//    Data tierOneClearanceLevelsRemainingHHHHH = traitCounts( {
-//        amount: [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240, 4200]
-//    });
-
 
     // used for limiting what traits are minted
     uint256[] tierOneClearanceLevelsRemaining = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240];
@@ -1307,24 +1292,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256[] commandTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
     uint256[] responseTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
 
-
-
-    //    uint256[6][] traitsMatrix = [
-//        [30,  40,  60,  80,  90,  105, 120, 135, 150, 180, 300, 510, 1200],
-//        [100, 200, 400, 500, 700, 1100,0,   0,   0,   0,   0,   0,   0],
-//        [300, 900, 1800,0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
-//        [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200],
-//        [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200]
-//    ];
-
-
     enum ClearanceLevel {GMan, Board, Director, Operative, LevelNine, LevelEight, LevelSeven, LevelSix, LevelFive,
         LevelFour, LevelThree, LevelTwo, LevelOne}
 
     enum DataProperties {clearanceLevel, station, securityTerminal, xenGroup, command, response, rarity}
 
-    uint256 private MINTFEE = 10**12;
-    uint256 private MINTOKENSTOMINT = 25;
+    uint256 private mintFee = 10**12;
 
     string[] private clearanceLevels = [
         "G-man",
@@ -1433,6 +1406,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 date
     );
 
+
     //////////////////////////////////
     ////// Bit Packing Functions /////
     //////////////////////////////////
@@ -1474,16 +1448,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return ret;
     }
 
-
     /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
         @param _id -- NFT id, which will pull the 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
       */
     function unpackData(uint256 _id) internal view returns (Data memory){
         return _unpackData(tokenIdToPackedData[_id]);
     }
-
-
-    // _clearanceLevel, _station, _securityTerminal, _xenGroup, _command, _response)
 
     /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
         @param _myData -- 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
@@ -1503,6 +1473,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return Data(_clearanceLevel, _station, _securityTerminal, _xenGroup, _command, _response, _rarity);
     }
 
+    // todo --remove before launch
     function verifyPacking() public view returns(bool){
         uint256 compressed = packData(1,2,3,4,5,6,12345);
         Data memory _myData = _unpackData(compressed);
@@ -1526,60 +1497,39 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// Get Functions //////////
     //////////////////////////////////
 
-    // todo, replace with simpler enum functions
+    // todo, replace with simpler enum functions -- or not?
+    function getClearanceLevel(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId));
+        return clearanceLevels[unpackData(_tokenId).clearanceLevel];
+        }
 
-    function getClearanceLevel(uint256 tokenId) public view returns (string memory) {
-        /*require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory output;
-
-        BMMultipass dataContract = BMMultipass(multipassMint);
-        output = dataContract.getClearanceLevel(tokenId);
-
-        return output;*/
+    function getStation(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId));
+        return stations[unpackData(_tokenId).clearanceLevel];
     }
 
-    function getStation(uint256 tokenId) public view returns (string memory) {
-        /*require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory output;
-
-        BMMultipass dataContract = BMMultipass(multipassMint);
-        output = dataContract.getStation(tokenId);
-
-        return output;*/
+    function getUserGroup(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId));
+        return xenGroups[unpackData(_tokenId).xenGroup];
     }
 
-    function getUserGroup(uint256 tokenId) public view returns (string memory) {
-        /*require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory output;
-
-        BMMultipass dataContract = BMMultipass(multipassMint);
-        output = dataContract.getStation(tokenId);
-
-        return output;*/
+    function getCommand(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId));
+        return commands[unpackData(_tokenId).command];
     }
 
-    function getCommand(uint256 tokenId) public view returns (string memory) {
-        /*require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory output;
-
-        BMMultipass dataContract = BMMultipass(multipassMint);
-        output = dataContract.getCommand(tokenId);
-
-        return output;*/
+    function getResponse(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId));
+        return responses[unpackData(_tokenId).response];
     }
 
-    function getResponse(uint256 tokenId) public view returns (string memory) {
-        /*require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-        string memory output;
-
-        BMMultipass dataContract = BMMultipass(multipassMint);
-        output = dataContract.getResponse(tokenId);
-
-        return output;*/
+    function getRarity(uint256 _tokenId) external view returns (uint256) { // number not string
+        require(_exists(_tokenId));
+        return unpackData(_tokenId).rarity;
     }
 
     function getRanking(uint256 _tokenId) public view returns (uint256) {
-        require(_tokenId < tokenCounter, "Token doesn't exist");
+        require(_exists(_tokenId));
         uint256 rank = 1;
         Data memory _myData;
         uint256 _myRarity = unpackData(_tokenId).rarity;
@@ -1595,18 +1545,16 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
 
-
     //////////////////////////////////
     ///////// Set Functions /////////
     //////////////////////////////////
 
     // todo
-    function setDefaultCitizenId(uint256 _citizenId) public {
-        // require ownership of this NFT
-        // require ownership of _citizenId
-        // set defaultCitizenId property
-    }
-
+//    function setDefaultCitizenId(uint256 _citizenId) public {
+//        // require ownership of this NFT
+//        // require ownership of _citizenId
+//        // set defaultCitizenId property
+//    }
 
 
     //////////////////////////////////
@@ -1616,21 +1564,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     function getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) view external returns(string[] memory) {
         uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_Bytes);
         string[] memory availableClearanceLevelNames = new string[](availableClearanceLevels.length);
-
-//        availableClearanceLevels = new uint256[](_count);
-//        for(uint256 i=0; i <= minLevel; i++){
-//            if(_Bytes==25 ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
-//                _count+=1;
-//            }
-//        }
-
-//        availableClearanceLevels = new uint256[](_count);
-//        for(uint256 i=0; i <= minLevel; i++){
-//            if(_Bytes==25 ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
-//                availableClearanceLevels[_counter] = i;
-//                _counter += 1;
-//            }
-//        }
 
         for(uint256 i; i< availableClearanceLevels.length; i++){
             availableClearanceLevelNames[i] = clearanceLevels[availableClearanceLevels[i]];
@@ -1718,12 +1651,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         // todo --> _claim
     }
-    // traditionally called mint, ...
-    function claim(uint256 _BytesReceived, uint256 _NeoTokyoCitizenId) public payable nonReentrant {
-        //require(uint256 newestMultipass; > 0 && newestMultipass < 3001, "Token ID invalid");
-        /*bytesContractAddress.transferFrom(_msgSender(), address(this));*/
 
-        require (msg.value >= MINTFEE); // todo -- confirm mint fee
+
+    function claim(uint256 _BytesReceived, uint256 _NeoTokyoCitizenId) public payable nonReentrant {
+        require (msg.value >= mintFee); // todo -- confirm mint fee
         require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= MINTOKENSTOMINT, "Insufficient Byte balance");
 
         require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
@@ -1745,16 +1676,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_BytesReceived); // references
         require(availableClearanceLevels.length > 0, "Minting unavailable for that amount. Try less Bytes.");
 
-
         uint256[] memory _availTotals = new uint256[](13);
-//        uint256[13] memory _availTotals = [uint256(0),0,0,0,0,0,0,0,0,0,0,0,0];
         for(uint256 i=0;i < availableClearanceLevels.length;i++){
-//            if(_BytesReceived==25){
-//                _availTotals[i] = tierOneClearanceLevelTotals[availableClearanceLevels[i]];
-//            }
-//            else{
-//                _availTotals[i] = tierTwoClearanceLevelTotals[availableClearanceLevels[i]];
-//            }
+            if(i==12 && OGPrivilege == 1 && whiteList[msg.sender] < 251) { continue; } // no level 1 (i==12) for OG
+
             _availTotals[i] = _BytesReceived==25 ? tierOneClearanceLevelTotals[availableClearanceLevels[i]] :
                 tierTwoClearanceLevelTotals[availableClearanceLevels[i]];
         }
@@ -1768,13 +1693,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             response:0,
             rarity:0
         });
-
-
-//    uint256[] stationsRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
-//    uint256[] securityTerminalsRemaining = [100, 200, 400, 500, 700, 1100];
-//    uint256[] xenGroupsRemaining = [300, 900, 1800];
-//    uint256[] commandsRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
-//    uint256[] responsesRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
 
         uint256 trait;
         for(uint256 i=0;i < 6;i++){ // 7 traits. rarity and clearanceLevel calculated elsewhere
@@ -1810,25 +1728,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             }
         }
 
-        // todo -- calculate rarity
-        // todo -- need to calculate relative totals
         _myData.rarity = tierOneClearanceLevelTotals[_myData.clearanceLevel]*10**10
             + (stationTotals[_myData.station] + securityTerminalTotals[_myData.securityTerminal] + xenGroupTotals[_myData.xenGroup]
               + commandTotals[_myData.command] + responseTotals[_myData.response])*10**5
             +  3000 - (whiteList[msg.sender] < 3000 ? whiteList[msg.sender] : 3000);
 
-        // Tier 1
-        if(_BytesReceived==25){
-            // get available ClearanceLevel
-        }
-        // Tier 2
-        else{
-            // get available ClearanceLevel
-        }
-
-
         tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
-//        _setTokenURI(tokenCounter, tokenURI(tokenCounter)); // todo-- doesn't exist in current framework
         _safeMint(msg.sender, tokenCounter);
 
         emit MultipassCreated(tokenCounter, msg.sender, tokenIdToPackedData[tokenCounter], block.timestamp);
@@ -1841,19 +1746,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     constructor(address _BytesAddress, address _NeoTokyoAddress) ERC721("Black Meta Multipass", "BMPASS") Ownable() {
-        /*_rootHash = new bytes32[]();
-        _rootHash[0] = ;
-        _rootHash[1] = ;
-        _rootHash[2] = ;*/
-
 //        bytesContractAddress = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
         bytesContractAddress = _BytesAddress;
         BytesERC20 = IERC20(_BytesAddress);
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
         NeoTokyoContract = IERC721Enumerable(_NeoTokyoAddress);
         MINTOKENSTOMINT = 25;
-
-        /*multipassMint = ;*/
     }
 
     // Required to receive ETH
@@ -1865,18 +1763,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     /////////////////////////////////////////////
     ///////// MetaData, Image Functions /////////
     /////////////////////////////////////////////
-
-//    // todo -- remove?
-//    function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
-//        require(
-//            _isApprovedOrOwner(_msgSender(), tokenId),
-//            "ERC721: transfer caller is not owner nor approved"
-//        );
-////        _setTokenURI(tokenId, _tokenURI); // todo-- doesn't exist in current framework
-//    }
-
-
-
 
     function getSVGTextGivenLine(uint256 _line, uint256 _duration, uint256 _startTime, string memory _txt) internal view returns (string memory) {
         string memory ret = string(abi.encodePacked(
@@ -1893,7 +1779,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             "s' fill='freeze'/%3E%3C/path%3E"
         ));
         ret = string(abi.encodePacked(ret,
-            "%3Ctext font-size='12' font-family='Courier New' fill='hsl(80,61%25,50%25)'%3E %3CtextPath xlink:href='%23path",
+            "%3Ctext class='bm'%3E %3CtextPath xlink:href='%23path",
             toString(_line),
             "'%3E",
             _txt,
@@ -1901,12 +1787,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             "%3C/text%3E"
         ));
         return ret;
-            //    '<path id="pathB"><animate attributeName="d" from="m0,170 h0" to="m0,170 h1100" dur="7s" begin="5s" fill="freeze"/></path>',
-            //    '<path id="pathC"><animate attributeName="d" from="m0,190 h0" to="m0,190 h1100" dur="7s" begin="8s" fill="freeze"/></path>',
     }
 
-    ////// Functions to get Citizen Data
 
+    ////// Functions to get Citizen Data
 //    function getIdentityIdOfTokenId(uint256 citizenId) public view returns (uint256) {}
 //    function getVaultIdOfTokenId(uint256 citizenId) public view returns (uint256) {}
 //    function getItemCacheIdOfTokenId(uint256 citizenId) public view returns (uint256) {}
@@ -1936,11 +1820,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         string memory header = string(abi.encodePacked(
 //            "%3Cstyle%3E .svgBody %7Bfont-family: 'Courier New';opacity:0.9; .bm %7Bfont-size:20px;fill: hsl(80,61%25,50%25);%7D %3C/style%3E",
             style,
-            "%3Cpath fill='hsl(80,61%25,50%25)' id='pathA'%3E%3Canimate attributeName='d' from='m230, 130 h0' to='m230, 130 h1100' dur='4s' begin='1s' fill='freeze' /%3E%3C/path%3E",
             "%3Ctext fill='hsl(80,61%25,50%25)' class='bm' x='200' y='90'%3EA.T.H.E.N.A. 9000 OPERATING SYSTEM %3C/text%3E",
             "%3Ctext fill='hsl(80,61%25,50%25)' class='bm' x='170' y='110'%3ECOPYRIGHT 2075-2121 BLACK META CORPORATION%3C/text%3E",
             "%3Ctext fill='hsl(80,61%25,50%25)' class='bm' x='230' y='130'%3E --SECURITY TERMINAL %23--  %3C/text%3E"
-//            "%3Ctext%3E%3CtextPath xlink:href='%23pathA' class='bm'%3E --SECURITY TERMINAL %23--  %3C/textPath%3E%3C/text%3E"
         ));
 
         string[23] memory textLines = [
@@ -1968,17 +1850,25 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             '====================================',
             'C:%3E  '
         ];
+
         string memory textOverlay="";
         uint256 startTime = 0;
-        uint256 duration = 2;
+        uint256 duration = 5;
+        uint256 flag = 0;
         for(uint256 i=0;i< textLines.length;i++){
+            if(i==5 && NeoTokyoContract.balanceOf(msg.sender) == 0){
+                // red lines ACCESS DENIED
+                textLines[5] = 'ACCESS DENIED';
+                flag = 1;
+            }
              textOverlay = string(abi.encodePacked(textOverlay, getSVGTextGivenLine(i, duration, startTime, textLines[i]), " "));
             startTime += duration/2;
+            if(flag==1) { break;}
         }
 
 
         string memory footer = string(abi.encodePacked(
-            "%3Cpath id='pathfinal'%3E%3Canimate attributeName='d' from='m120,550 h0' to='m120,550 h1100' dur='7s' begin='", toString(startTime) , "s' fill='freeze'/%3E%3C/path%3E",
+            "%3Cpath id='pathfinal'%3E%3Canimate attributeName='d' from='m120,525 h0' to='m120,525 h1100' dur='7s' begin='", toString(startTime) , "s' fill='freeze'/%3E%3C/path%3E",
             "%3Ctext%3E%3CtextPath xlink:href='%23pathfinal' class='bm'%3ERETURN: enter | BACKSPACE : delete | F1: main menu%3C/textPath%3E%3C/text%3E"
 //            "%3Cstyle%3E .svgBody %7Bfont-family: 'Courier New';opacity:0.9;background-size:cover;background-size: auto auto;background-repeat: no-repeat;background-image: url(https://gateway.pin",
 //            "ata.cloud/ipfs/QmcGVfK6SW45GFCQZLHe32myGvo6MXaEUerRAWTWM3UHtu?preview=1);%7D .bm %7Bfont-size:20px;fill: hsl(80,61%25,50%25);%7D %3C/style%3E"
@@ -2134,6 +2024,13 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         BlackMetaIdentityContract = IERC721Enumerable(_contractAddress);
     }
 
+    function setOGPrivilege(uint256 _OGPrivilege) public onlyOwner {
+        OGPrivilege = _OGPrivilege;
+    }
+
+    function setMintFee(uint256 _mintFee) public onlyOwner {
+        mintFee = _mintFee;
+    }
 
 
     ////////////////////////////////////
