@@ -1642,6 +1642,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         }
     }
 
+    // temp
     function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) public payable nonReentrant {
         uint256 doesOwnToken = 0;
         for(uint256 i=0; i< BlackMetaIdentityContract.balanceOf(msg.sender);i++){
