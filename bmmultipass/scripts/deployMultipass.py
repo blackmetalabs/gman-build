@@ -28,6 +28,7 @@ def main():
         publish_source=publish_source,
     )
 
+    exit(0)
 
     # bitPackingSuccessful = mp.verifyPacking();#[accounts[0]], {'from': accounts[0]})
     # print(f'Packing Successful: {bitPackingSuccessful}')

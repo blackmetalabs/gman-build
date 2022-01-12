@@ -1243,9 +1243,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     // todo -- create function, setDefaultCitizenId, to allow owner to save preferences
     // todo -- for now, there is no need. as no change in functionality.
 
-//    address public multipass; // todo -- what is this? Contract from Neo tokyo
-    address public citizenContractAddress;
-    address public bytesContractAddress;
     IERC20 BytesERC20; // todo -- verify that this is IERC20 and not something similar
     IERC721Enumerable NeoTokyoContract;
     IERC721Enumerable BlackMetaIdentityContract;
@@ -1269,12 +1266,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     struct Data {
         uint256 clearanceLevel;  // 0 <= x <= 12
-        uint256 station;
-        uint256 securityTerminal; //  1 <= x <= 6
-        uint256 xenGroup;             // 1,2,3
-        uint256 command;
-        uint256 response;
-        uint256 rarity;
+        uint256 station; // 0 <= x <= 12
+        uint256 securityTerminal; // 0 <= x <= 5
+        uint256 xenGroup; // 0 <= x <= 2
+        uint256 command; // 0 <= x <= 12
+        uint256 response; // 0 <= x <= 12
+        uint256 rarity; // 0 <= x <= 12
     }
 
     // used for limiting what traits are minted
@@ -1389,7 +1386,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 date
     );
 
-
     event ReleaseInformation(
         uint256 InformationA,
         uint256 InformationB,
@@ -1414,12 +1410,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ////// Bit Packing Functions /////
     //////////////////////////////////
 
-    /** @dev Packs 6 uints from data structure into 1 uint to save space (96, 96, 32, 8, 8, 8) -> 256
-        @param _myData -- data structure holding attributes of NFT
-    */
-    function packDataStructure(Data memory _myData) internal pure returns (uint256){
-        return packData(_myData.clearanceLevel, _myData.station, _myData.securityTerminal, _myData.xenGroup, _myData.command, _myData.response, _myData.rarity);
-    }
+//    /** @dev Packs 6 uints from data structure into 1 uint to save space (96, 96, 32, 8, 8, 8) -> 256
+//        @param _myData -- data structure holding attributes of NFT
+//    */
+//    function packDataStructure(Data memory _myData) internal pure returns (uint256){
+//        return packData(_myData.clearanceLevel, _myData.station, _myData.securityTerminal, _myData.xenGroup, _myData.command, _myData.response, _myData.rarity);
+//    }
 
     /** @dev Packs 5 uints into 1 uint to save space () -> 256
         @param _clearanceLevel -- clearance level of NFT
@@ -1458,12 +1454,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return _unpackData(tokenIdToPackedData[_id]);
     }
 
-    /** @dev Unpacks 1 uints into 3 uints; (256) -> (90, 90, 32, 8, 3, 1)
-        @param _myData -- 256 bit encoding of _dipValue, _stableCoinAmount, _energy, _dipPercent, _dipLevel, and _isWaitingToBuy
+
+//
+    /** @dev Unpacks 1 uints into 7 uints; (256) -> (8, 8, 8, 8, 8, rest)
+        @param _myData -- 256 bit encoding of data
       */
     function _unpackData(uint256 _myData) internal pure returns (Data memory){
-
-//        return Data(1,2,3,4,5, 6, 7);
         uint256 _clearanceLevel = uint256(uint8(_myData));
         uint256 _station = uint256(uint8(_myData >> 8));
         uint256 _securityTerminal = uint256(uint8(_myData >> 16));
@@ -1472,65 +1468,109 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 _response = uint256(uint8(_myData >> 40));
         uint256 _rarity = uint256(uint128(_myData >> 48));
 
-
         return Data(_clearanceLevel, _station, _securityTerminal, _xenGroup, _command, _response, _rarity);
     }
 
     // todo --remove before launch
-    function verifyPacking() public view returns(bool){
-        uint256 compressed = packData(1,2,3,4,5,6,12345);
-        Data memory _myData = _unpackData(compressed);
-
-//        emit ReleaseInformation(_myData.rarity, _myData.rarity, _myData.rarity);
-
-        if(
-            _myData.clearanceLevel == 1 &&
-            _myData.station == 2 &&
-            _myData.securityTerminal == 3 &&
-            _myData.xenGroup == 4 &&
-            _myData.command == 5 &&
-            _myData.response == 6 &&
-            _myData.rarity == 12345
-        ) { return true;}
-        else {return false;}
-    }
+//    function verifyPacking() external view returns(bool){
+//        uint256 compressed = packData(1,2,3,4,5,6,12345);
+//        Data memory _myData = _unpackData(compressed);
+//
+//
+//        if(
+//            _myData.clearanceLevel == 1 &&
+//            _myData.station == 2 &&
+//            _myData.securityTerminal == 3 &&
+//            _myData.xenGroup == 4 &&
+//            _myData.command == 5 &&
+//            _myData.response == 6 &&
+//            _myData.rarity == 12345
+//        ) { return true;}
+//        else {return false;}
+//    }
 
 
     //////////////////////////////////
     ///////// Get Functions //////////
     //////////////////////////////////
 
-    // todo, replace with simpler enum functions -- or not?
+    /** @dev gets clearanceLevel of NFT
+        @param _tokenId -- id of NFT
+      */
     function getClearanceLevel(uint256 _tokenId) external view returns (string memory) {
         require(_exists(_tokenId));
         return clearanceLevels[unpackData(_tokenId).clearanceLevel];
         }
 
+    /** @dev gets station of NFT
+        @param _tokenId -- id of NFT
+      */
     function getStation(uint256 _tokenId) external view returns (string memory) {
         require(_exists(_tokenId));
         return stations[unpackData(_tokenId).clearanceLevel];
     }
 
+    /** @dev gets usergroup (xenGroup)  of NFT
+        @param _tokenId -- id of NFT
+      */
     function getUserGroup(uint256 _tokenId) external view returns (string memory) {
         require(_exists(_tokenId));
         return xenGroups[unpackData(_tokenId).xenGroup];
     }
 
+    /** @dev gets commandof NFT
+        @param _tokenId -- id of NFT
+      */
     function getCommand(uint256 _tokenId) external view returns (string memory) {
         require(_exists(_tokenId));
         return commands[unpackData(_tokenId).command];
     }
 
+    /** @dev gets response of NFT
+        @param _tokenId -- id of NFT
+      */
     function getResponse(uint256 _tokenId) external view returns (string memory) {
         require(_exists(_tokenId));
         return responses[unpackData(_tokenId).response];
     }
 
+    /** @dev gets rarity of NFT, a score used to find rank
+        @param _tokenId -- id of NFT
+      */
     function getRarity(uint256 _tokenId) external view returns (uint256) { // number not string
         require(_exists(_tokenId));
         return unpackData(_tokenId).rarity;
     }
 
+//    function getProperty(uint256 _tokenId, DataProperties _prop ) external view returns (string) { // number not string
+//        require(_exists(_tokenId));
+//        if (_prop == DataProperties.clearanceLevel){
+//            return clearanceLevels[unpackData(_tokenId).clearanceLevel];
+//        }
+//        else if(_prop == DataProperties.station){
+//            return stations[unpackData(_tokenId).station];
+//        }
+//        else if(_prop == DataProperties.securityTerminal){
+//            return securityTerminals[unpackData(_tokenId).securityTerminal];
+//        }
+//        else if(_prop == DataProperties.xenGroup){
+//            return xenGroups[unpackData(_tokenId).xenGroup];
+//        }
+//        else if(_prop == DataProperties.command){
+//            return commands[unpackData(_tokenId).command];
+//        }
+//        else if(_prop == DataProperties.response){
+//            return responses[unpackData(_tokenId).response];
+//        }
+//        else if(_prop == DataProperties.rarity){
+//            return toString(unpackData(_tokenId).rarity); // note use of string
+//        }
+//    }
+
+    // todo -- display rank on NFT
+    /** @dev gets rank of NFT. all clearanceLevels fall into different categories
+        @param _tokenId -- id of NFT
+      */
     function getRanking(uint256 _tokenId) public view returns (uint256) {
         require(_exists(_tokenId));
         uint256 rank = 1;
@@ -1735,7 +1775,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
               + commandTotals[_myData.command] + responseTotals[_myData.response])*10**5
             +  3000 - (whiteList[msg.sender] < 3000 ? whiteList[msg.sender] : 3000);
 
-        tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
+//        tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
+        tokenIdToPackedData[tokenCounter] = packData(_myData.clearanceLevel, _myData.station, _myData.securityTerminal, _myData.xenGroup, _myData.command, _myData.response, _myData.rarity);
         _safeMint(msg.sender, tokenCounter);
 
         emit MultipassCreated(tokenCounter, msg.sender, tokenIdToPackedData[tokenCounter], block.timestamp);
@@ -1838,15 +1879,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //        tokenCounter = tokenCounter + 1;
     }
 
-    function setCitizenAddress(address contractAddress) public onlyOwner {
-        citizenContractAddress = contractAddress;
-    }
-
     constructor(address _BytesAddress, address _NeoTokyoAddress, string memory _backgroundImageLink) ERC721("Black Meta Multipass", "BMPASS") Ownable() {
 //        bytesContractAddress = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
-        bytesContractAddress = _BytesAddress;
-        BytesERC20 = IERC20(_BytesAddress);
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
+        BytesERC20 = IERC20(_BytesAddress);
         NeoTokyoContract = IERC721Enumerable(_NeoTokyoAddress);
         requiredBytesToMint = 25;
         backgroundImageLink = _backgroundImageLink;
@@ -2166,7 +2202,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
 
 // todo -- remove after testing
-
 //////////////////////////
 ///////// NEO TOKYO //////
 //////////////////////////
