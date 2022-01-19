@@ -1263,6 +1263,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     mapping(uint256 => uint256) private tokenIdToNeoCitizenClaimedStatus; // compressed data for NFT
     mapping(uint256 => uint256) private tokenIdToBlackMetaIdentityClaimedStatus; // compressed data for NFT
     mapping(address => uint256) private whiteList;
+    mapping(address => uint256) private whiteListHasMinted; // will have values 0, 1, 2 ,3 depending on state (none, first mint, second mint, both mints)
 
     struct Data {
         uint256 clearanceLevel;  // 0 <= x <= 12
@@ -1616,7 +1617,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return availableClearanceLevelNames;
     }
 
-    function _getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) internal view returns(uint256[] memory) {
+    function _getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) private view returns(uint256[] memory) {
         uint256[] memory availableClearanceLevels;
 
         uint256 minLevel;
@@ -1639,19 +1640,28 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             minLevel = 9;
         }
         else {
-            if(OGPrivilege == 1 && whiteList[msg.sender] < 251){ //
-                minLevel == 11;
-            }
-            else {
-                minLevel = 12;
-            }
+//            minLevel = 12; // this would not work in embedded if/else statement
+//            if((OGPrivilege == 1) && (whiteList[msg.sender] != 0) && (whiteList[msg.sender] < 251) ){
+//                minLevel == 11;
+//            }
+//            else {
+//                minLevel = 12; // this would not work in embedded if/else statement
+//            }
+            /// I Don't know why, but the if/else above didn't work
+            minLevel = 12 - ( ((OGPrivilege == 1) && (whiteList[msg.sender] != 0) && (whiteList[msg.sender] < 251) ) ? 1 : 0);
         }
 
         for(uint256 i=0; i <= minLevel; i++){
             if(_Bytes==requiredBytesToMint ? (tierOneClearanceLevelsRemaining[i] > 0) : (tierTwoClearanceLevelsRemaining[i] > 0) ){
-                _count+=1;
+                _count += 1;
             }
         }
+
+
+        // temp
+//        availableClearanceLevels = new uint256[](1);
+//        availableClearanceLevels[0] = minLevel;
+//        return availableClearanceLevels;
 
         availableClearanceLevels = new uint256[](_count);
         for(uint256 i=0; i <= minLevel; i++){
@@ -1702,6 +1712,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         tokenIdToBlackMetaIdentityClaimedStatus[_BlackMetaIdentity] = 1;
 
         _claim(_BytesReceived);
+        require(whiteListHasMinted[msg.sender] < 2);
+        whiteListHasMinted[msg.sender] += 2;
+
     }
 
     function _claim(uint256 _BytesReceived) internal { // removed payable
@@ -1784,7 +1797,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     }
 
-    function claim(uint256 _BytesReceived, uint256 _NeoTokyoCitizenId) public payable nonReentrant {
+    function claim(uint256 _BytesReceived) public payable nonReentrant {
 //        require (msg.value >= mintFee); // todo -- confirm mint fee
 //        require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= requiredBytesToMint, "Insufficient Byte balance");
 
@@ -1793,9 +1806,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //        }
 //        require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
 
-        uint256 doesOwnToken = 0;
+//        uint256 doesOwnToken = 0;
         require(blackMetaMintsRemaining > 0, "Limit reached for regular mints.");
         blackMetaMintsRemaining -= 1;
+
+        require(whiteListHasMinted[msg.sender] == 0 || whiteListHasMinted[msg.sender] == 2);
+        whiteListHasMinted[msg.sender] += 1;
 
 //        for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
 //            if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
@@ -1804,8 +1820,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //            }
 //        }
 //        require(doesOwnToken==1, "Not Owner of this token.");
-        require(tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId]==0, "Citizen already Claimed");
-        tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId] = 1;
+//        require(tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId]==0, "Citizen already Claimed");
+//        tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId] = 1;
 
 
         _claim(_BytesReceived);
