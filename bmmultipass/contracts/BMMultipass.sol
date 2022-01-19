@@ -1686,7 +1686,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         }
     }
 
-    // temp
     function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) public payable nonReentrant {
         uint256 doesOwnToken = 0;
         require(personnelMintsRemaining > 0, "Personell limit reached.");
@@ -1795,16 +1794,16 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //        require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
 
         uint256 doesOwnToken = 0;
-        require(blackMetaMintsRemaining > 0, "Personell limit reached.");
+        require(blackMetaMintsRemaining > 0, "Limit reached for regular mints.");
         blackMetaMintsRemaining -= 1;
 
-        for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
-            if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
-                doesOwnToken = 1;
-                break;
-            }
-        }
-        require(doesOwnToken==1, "Not Owner of this token.");
+//        for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
+//            if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
+//                doesOwnToken = 1;
+//                break;
+//            }
+//        }
+//        require(doesOwnToken==1, "Not Owner of this token.");
         require(tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId]==0, "Citizen already Claimed");
         tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId] = 1;
 
