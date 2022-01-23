@@ -2,24 +2,11 @@ EXTRAS = False;
 
 def main():
 
-    svg = ''' '<path id="path',
-            toString(_line),
-            '"><animate attributeName="d" from="m0',
-            toString(170 + _line*20), // todo-- this assume _line starts at 0
-            '  h0" to="m0,',
-            toString(170 + _line*20), // todo-- this assume _line starts at 0
-            'h1100" dur="',
-            toString(_duration),
-            's" begin="',
-            toString(_begin),
-            's" fill="freeze"/></path>', '''
-    print(f'original: \n{svg}')
-
 
 
     svg = '''
+https://gateway.pinata.cloud/ipfs/QmePMp51D364ZpTg7VLKUhuPRawkTK2EHBj7JG6LmsLsF8
 
-font-family: 'VT323', monospace;
 '''
 
 

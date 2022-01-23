@@ -1239,17 +1239,13 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
 
 contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
-    // todo -- make compatible if owner address has multiple citizen IDs
-    // todo -- create function, setDefaultCitizenId, to allow owner to save preferences
-    // todo -- for now, there is no need. as no change in functionality.
-
-    IERC20 BytesERC20; // todo -- verify that this is IERC20 and not something similar
+    IERC20 BytesERC20;
     IERC721Enumerable NeoTokyoContract;
     IERC721Enumerable BlackMetaIdentityContract;
 
+    uint256 public tokenCounter;
     uint256 private whiteListCount;
     uint256 private OGPrivilege = 1;
-    uint256 public tokenCounter;
     uint256 private primaryClaimsCompleted;
     uint256 private secondaryClaimsCompleted;
     uint256 private requiredBytesToMint;
@@ -1276,24 +1272,26 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     // used for limiting what traits are minted
-    uint256[] tierOneClearanceLevelsRemaining = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240];
-    uint256[] tierOneClearanceLevelTotals = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240]; // probably not needed
-    uint256[] tierTwoClearanceLevelsRemaining = [28, 36, 44, 60, 72, 84, 96, 108, 120, 144, 240, 408, 960];
-    uint256[] tierTwoClearanceLevelTotals = [28, 36, 44, 60, 72, 84, 96, 108, 120, 144, 240, 408, 960]; // probably not needed
+    uint256[] private tierOneClearanceLevelsRemaining = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240];
+    uint256[] private tierOneClearanceLevelTotals = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240]; // probably not needed
+    uint256[] private tierTwoClearanceLevelsRemaining = [28, 36, 44, 60, 72, 84, 96, 108, 120, 144, 240, 408, 960];
+    uint256[] private tierTwoClearanceLevelTotals = [28, 36, 44, 60, 72, 84, 96, 108, 120, 144, 240, 408, 960]; // probably not needed
 
     // used for limiting what traits are minted
-    uint256[] stationsRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
-    uint256[] securityTerminalsRemaining = [100, 200, 400, 500, 700, 1100];
-    uint256[] xenGroupsRemaining = [300, 900, 1800];
-    uint256[] commandsRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
-    uint256[] responsesRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+    uint256[] private stationsRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+    uint256[] private securityTerminalsRemaining = [100, 200, 400, 500, 700, 1100];
+    uint256[] private xenGroupsRemaining = [300, 900, 1800];
+    uint256[] private commandsRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+    uint256[] private responsesRemaining = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
 
     // Used for rarity scores
-    uint256[] stationTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
-    uint256[] securityTerminalTotals = [100, 200, 400, 500, 700, 1100];
-    uint256[] xenGroupTotals = [300, 900, 1800];
-    uint256[] commandTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
-    uint256[] responseTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+    uint256[] private stationTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+    uint256[] private securityTerminalTotals = [100, 200, 400, 500, 700, 1100];
+    uint256[] private xenGroupTotals = [300, 900, 1800];
+    uint256[] private commandTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+    uint256[] private responseTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
+
+    string private overlayBaselink;
 
     enum ClearanceLevel {GMan, Board, Director, Operative, LevelNine, LevelEight, LevelSeven, LevelSix, LevelFive,
         LevelFour, LevelThree, LevelTwo, LevelOne}
@@ -1387,11 +1385,11 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 date
     );
 
-    event ReleaseInformation(
-        uint256 InformationA,
-        uint256 InformationB,
-        uint256 InformationC
-    );
+//    event ReleaseInformation(
+//        uint256 InformationA,
+//        uint256 InformationB,
+//        uint256 InformationC
+//    );
 
     event FundsReleasedToAccount(
         uint256 EthAmount,
@@ -1400,11 +1398,11 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 date
     );
 
-    event ReceivedETH(
-        address sender,
-        uint256 amount,
-        uint256 date
-    );
+//    event ReceivedETH(
+//        address sender,
+//        uint256 amount,
+//        uint256 date
+//    );
 
 
     //////////////////////////////////
@@ -1472,7 +1470,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return Data(_clearanceLevel, _station, _securityTerminal, _xenGroup, _command, _response, _rarity);
     }
 
-    // todo --remove before launch
 //    function verifyPacking() external view returns(bool){
 //        uint256 compressed = packData(1,2,3,4,5,6,12345);
 //        Data memory _myData = _unpackData(compressed);
@@ -1568,38 +1565,39 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //        }
 //    }
 
-    // todo -- display rank on NFT
-    /** @dev gets rank of NFT. all clearanceLevels fall into different categories
-        @param _tokenId -- id of NFT
-      */
-    function getRanking(uint256 _tokenId) public view returns (uint256) {
-        require(_exists(_tokenId));
-        uint256 rank = 1;
-        Data memory _myData;
-        uint256 _myRarity = unpackData(_tokenId).rarity;
-        for(uint256 i=0; i< tokenCounter; i++){
-            if(i!= _tokenId){
-                _myData = unpackData(i);
-                if(_myData.rarity > _myRarity){
-                    rank +=1;
-                }
-            }
-        }
-        return rank;
-    }
+    // This was removed because of high gas cost. Each node, it seems, can set limits even for call functions
+//    /** @dev gets rank of NFT. all clearanceLevels fall into different categories
+//        @param _tokenId -- id of NFT
+//      */
+//    function getRanking(uint256 _tokenId) public view returns (uint256) {
+//        // todo: temp
+//        return 1;
+//
+//        require(_exists(_tokenId));
+//        uint256 rank = 1;
+//        Data memory _myData;
+//        uint256 _myRarity = unpackData(_tokenId).rarity;
+//        for(uint256 i=0; i< tokenCounter; i++){
+//            if(_exists(i) && (i != _tokenId)){
+//                _myData = unpackData(i);
+//                if(_myData.rarity > _myRarity){
+//                    rank += 1;
+//                }
+//            }
+//        }
+//        return rank;
+//    }
 
 
     //////////////////////////////////
     ///////// Set Functions /////////
     //////////////////////////////////
 
-    // todo -- this has been ignored because no real use, atm
-//    function setDefaultCitizenId(uint256 _citizenId) public {
-//        // require ownership of this NFT
-//        // require ownership of _citizenId
-//        // set defaultCitizenId property
-//    }
-
+    // image: baseuri + / + clearanceLevel
+    // no trailing slash
+    function setOverlayLinks(string memory _overlayBaseLink) external onlyOwner {
+        overlayBaselink = _overlayBaseLink;
+    }
 
     //////////////////////////////////
     ///////// Core Functions /////////
@@ -1619,34 +1617,28 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     function _getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) private view returns(uint256[] memory) {
         uint256[] memory availableClearanceLevels;
+        uint256 decimals = 18;
 
         uint256 minLevel;
         uint256 _count = 0;
         uint256 _counter = 0;
 
-        if (_Bytes >= 500) {
+        if (_Bytes >= 500 * 10**decimals) {
             minLevel = 0;
         }
-        else if(_Bytes >= 300){
+        else if(_Bytes >= 300 * 10**decimals){
             minLevel = 1;
         }
-        else if(_Bytes >= 200){
+        else if(_Bytes >= 200 * 10**decimals){
             minLevel = 3;
         }
-        else if(_Bytes >= 100){
+        else if(_Bytes >= 100 * 10**decimals){
             minLevel = 6;
         }
-        else if(_Bytes >= 50){
+        else if(_Bytes >= 50 * 10**decimals){
             minLevel = 9;
         }
         else {
-//            minLevel = 12; // this would not work in embedded if/else statement
-//            if((OGPrivilege == 1) && (whiteList[msg.sender] != 0) && (whiteList[msg.sender] < 251) ){
-//                minLevel == 11;
-//            }
-//            else {
-//                minLevel = 12; // this would not work in embedded if/else statement
-//            }
             /// I Don't know why, but the if/else above didn't work
             minLevel = 12 - ( ((OGPrivilege == 1) && (whiteList[msg.sender] != 0) && (whiteList[msg.sender] < 251) ) ? 1 : 0);
         }
@@ -1656,12 +1648,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
                 _count += 1;
             }
         }
-
-
-        // temp
-//        availableClearanceLevels = new uint256[](1);
-//        availableClearanceLevels[0] = minLevel;
-//        return availableClearanceLevels;
 
         availableClearanceLevels = new uint256[](_count);
         for(uint256 i=0; i <= minLevel; i++){
@@ -1698,7 +1684,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) public payable nonReentrant {
         uint256 doesOwnToken = 0;
-        require(personnelMintsRemaining > 0, "Personell limit reached.");
+        require(personnelMintsRemaining > 0, "Personnel limit reached.");
         personnelMintsRemaining -= 1;
 
         for(uint256 i=0; i< BlackMetaIdentityContract.balanceOf(msg.sender);i++){
@@ -1717,10 +1703,63 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     }
 
+
+
+
+    ///////////////////////////////////////////////
+    ///////////////// todo todo todo TEMP TEMP ////
+    ///////////////////////////////////////////////
+
+    // todo -- remove
+    function adminClaim(uint256 _BytesReceived) external onlyOwner {
+        _claim(_BytesReceived);
+    }
+
+    function totalTierOneClearanceLevelsRemaining() external view returns(uint256)  {
+        uint256 total =0;
+        for(uint256 i=0; i< 13;i++){
+            total += tierOneClearanceLevelsRemaining[i];
+        }
+        return total;
+    }
+
+    function totalTierTwoClearanceLevelsRemaining() external view returns(uint256)  {
+        uint256 total =0;
+        for(uint256 i=0; i< 13;i++){
+            total += tierOneClearanceLevelsRemaining[i];
+        }
+        return total;
+    }
+
+    function getTotalAllRemainingFeatures() external view returns(uint256)  {
+        uint256 total =0;
+        uint256 xenMax = xenGroupsRemaining.length;
+        uint256 stMax = securityTerminalsRemaining.length;
+        for(uint256 i=0; i< 13;i++){
+            total += tierOneClearanceLevelsRemaining[i] + tierTwoClearanceLevelsRemaining[i]
+                + stationsRemaining[i] + commandsRemaining[i] + responsesRemaining[i];
+            if (i < xenMax) {
+                total += xenGroupsRemaining[i];
+            }
+            if (i < stMax) {
+                total += securityTerminalsRemaining[i];
+            }
+
+        }
+
+        return total;
+    }
+    /// todo //////////////////// END TEMP
+    ////////////////////////////////////////
+
+
+
+
+
     function _claim(uint256 _BytesReceived) internal { // removed payable
-        require (msg.value >= mintFee); // todo -- confirm mint fee
+        require (msg.value >= mintFee);
         require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= requiredBytesToMint, "Insufficient Byte balance");
-        require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
+        require(whiteList[msg.sender]!=0, "Not whitelisted");
 
         if(requiredBytesToMint > 0){
             require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
@@ -1728,16 +1767,15 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
         // returns list-- could be enums -- of positions within clearanceLevels that are available, not amount available
         uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_BytesReceived); // references
-        require(availableClearanceLevels.length > 0, "Minting unavailable for that amount. Try less Bytes.");
+        require(availableClearanceLevels.length > 0, "Minting unavailable for that amount.");
 
         uint256[] memory _availTotals = new uint256[](13);
         for(uint256 i=0;i < availableClearanceLevels.length;i++){
-//            if(i==12 && OGPrivilege == 1 && whiteList[msg.sender] < 251) { continue; } moved to getAvailableClearanceLevelsGivenBytes
-
-            _availTotals[i] = _BytesReceived==25 ? tierOneClearanceLevelTotals[availableClearanceLevels[i]] :
+            _availTotals[availableClearanceLevels[i]] = _BytesReceived==25 ? tierOneClearanceLevelTotals[availableClearanceLevels[i]] :
                 tierTwoClearanceLevelTotals[availableClearanceLevels[i]];
         }
 
+        // initialize empty structure
         Data memory _myData = Data( {
             clearanceLevel:0,
             station:0,
@@ -1748,46 +1786,33 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             rarity:0
         });
 
-        uint256 trait;
-        for(uint256 i=0;i < 6;i++){ // 7 traits. rarity and clearanceLevel calculated elsewhere
-            // todo -- decrease trait
-            if(i==0){ // clearanceLevel
-                _myData.clearanceLevel = _chooseTraitGivenArray(_availTotals); // todo
-                if(_BytesReceived==requiredBytesToMint){
-                    tierOneClearanceLevelTotals[_myData.clearanceLevel] -= 1;
-                }
-                else{
-                    tierTwoClearanceLevelTotals[_myData.clearanceLevel] -= 1;
-                }
-            }
-            if(i==1){
-                _myData.station = _chooseTraitGivenArray(stationsRemaining);
-                stationsRemaining[_myData.station] -= 1;
-            }
-            else if(i==2){
-                _myData.securityTerminal = _chooseTraitGivenArray(securityTerminalsRemaining);
-                securityTerminalsRemaining[_myData.securityTerminal] -= 1;
-            }
-            else if(i==3){
-                _myData.xenGroup = _chooseTraitGivenArray(xenGroupsRemaining);
-                xenGroupsRemaining[_myData.xenGroup] -= 1;
-            }
-            else if(i==4){
-                _myData.command = _chooseTraitGivenArray(commandsRemaining);
-                commandsRemaining[_myData.command] -= 1;
-            }
-            else if(i==5){
-                _myData.response = _chooseTraitGivenArray(responsesRemaining);
-                responsesRemaining[_myData.response] -= 1;
-            }
+        _myData.clearanceLevel = _chooseTraitGivenArray(_availTotals);
+        if(_BytesReceived==requiredBytesToMint){
+            tierOneClearanceLevelsRemaining[_myData.clearanceLevel] -= 1;
         }
+        else{
+            tierTwoClearanceLevelsRemaining[_myData.clearanceLevel] -= 1;
+        }
+        _myData.station = _chooseTraitGivenArray(stationsRemaining);
+        stationsRemaining[_myData.station] -= 1;
+        _myData.securityTerminal = _chooseTraitGivenArray(securityTerminalsRemaining);
+        securityTerminalsRemaining[_myData.securityTerminal] -= 1;
+        _myData.xenGroup = _chooseTraitGivenArray(xenGroupsRemaining);
+        xenGroupsRemaining[_myData.xenGroup] -= 1;
+        _myData.command = _chooseTraitGivenArray(commandsRemaining);
+        commandsRemaining[_myData.command] -= 1;
+        _myData.response = _chooseTraitGivenArray(responsesRemaining);
+        responsesRemaining[_myData.response] -= 1;
 
-        _myData.rarity = tierOneClearanceLevelTotals[_myData.clearanceLevel]*10**10
-            + (stationTotals[_myData.station] + securityTerminalTotals[_myData.securityTerminal] + xenGroupTotals[_myData.xenGroup]
-              + commandTotals[_myData.command] + responseTotals[_myData.response])*10**5
+        // todo Make sure this is accurate
+        // shift numbers at the end so the number is truncated--doesn't affect other section
+        // A | B | C --> Four-digit numbers with decreasing significance
+        // A => clearanceLevel , B => all other properties , C => inverted whitelist order
+        _myData.rarity =  (1200 - tierOneClearanceLevelTotals[_myData.clearanceLevel] + tierTwoClearanceLevelTotals[_myData.clearanceLevel] ) * (10**8)
+            +  (6500 - ( stationTotals[_myData.station] + securityTerminalTotals[_myData.securityTerminal] + xenGroupTotals[_myData.xenGroup]
+              + commandTotals[_myData.command] + responseTotals[_myData.response])) * (10**4)
             +  3000 - (whiteList[msg.sender] < 3000 ? whiteList[msg.sender] : 3000);
 
-//        tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
         tokenIdToPackedData[tokenCounter] = packData(_myData.clearanceLevel, _myData.station, _myData.securityTerminal, _myData.xenGroup, _myData.command, _myData.response, _myData.rarity);
         _safeMint(msg.sender, tokenCounter);
 
@@ -1798,100 +1823,13 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
     function claim(uint256 _BytesReceived) public payable nonReentrant {
-//        require (msg.value >= mintFee); // todo -- confirm mint fee
-//        require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= requiredBytesToMint, "Insufficient Byte balance");
-
-//        if(requiredBytesToMint > 0){
-//            require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
-//        }
-//        require(whiteList[msg.sender]!=0, "Not whitelisted"); // todo give privileges to first 250, not lowest level
-
-//        uint256 doesOwnToken = 0;
         require(blackMetaMintsRemaining > 0, "Limit reached for regular mints.");
         blackMetaMintsRemaining -= 1;
 
         require(whiteListHasMinted[msg.sender] == 0 || whiteListHasMinted[msg.sender] == 2);
         whiteListHasMinted[msg.sender] += 1;
 
-//        for(uint256 i=0; i< NeoTokyoContract.balanceOf(msg.sender);i++){
-//            if(NeoTokyoContract.tokenOfOwnerByIndex(msg.sender, i) == _NeoTokyoCitizenId){
-//                doesOwnToken = 1;
-//                break;
-//            }
-//        }
-//        require(doesOwnToken==1, "Not Owner of this token.");
-//        require(tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId]==0, "Citizen already Claimed");
-//        tokenIdToNeoCitizenClaimedStatus[_NeoTokyoCitizenId] = 1;
-
-
         _claim(_BytesReceived);
-
-//        // returns list-- could be enums -- of positions within clearanceLevels that are available, not amount available
-//        uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_BytesReceived); // references
-//        require(availableClearanceLevels.length > 0, "Minting unavailable for that amount. Try less Bytes.");
-//
-//        uint256[] memory _availTotals = new uint256[](13);
-//        for(uint256 i=0;i < availableClearanceLevels.length;i++){
-//
-//            _availTotals[i] = _BytesReceived==25 ? tierOneClearanceLevelTotals[availableClearanceLevels[i]] :
-//                tierTwoClearanceLevelTotals[availableClearanceLevels[i]];
-//        }
-//
-//        Data memory _myData = Data( {
-//            clearanceLevel:0,
-//            station:0,
-//            securityTerminal:0,
-//            xenGroup:0,
-//            command:0,
-//            response:0,
-//            rarity:0
-//        });
-//
-//        uint256 trait;
-//        for(uint256 i=0;i < 6;i++){ // 7 traits. rarity and clearanceLevel calculated elsewhere
-//            // todo -- decrease trait
-//            if(i==0){ // clearanceLevel
-//                _myData.clearanceLevel = _chooseTraitGivenArray(_availTotals); // todo
-//                if(_BytesReceived==requiredBytesToMint){
-//                    tierOneClearanceLevelTotals[_myData.clearanceLevel] -= 1;
-//                }
-//                else{
-//                    tierTwoClearanceLevelTotals[_myData.clearanceLevel] -= 1;
-//                }
-//            }
-//            if(i==1){
-//                _myData.station = _chooseTraitGivenArray(stationsRemaining);
-//                stationsRemaining[_myData.station] -= 1;
-//            }
-//            else if(i==2){
-//                _myData.securityTerminal = _chooseTraitGivenArray(securityTerminalsRemaining);
-//                securityTerminalsRemaining[_myData.securityTerminal] -= 1;
-//            }
-//            else if(i==3){
-//                _myData.xenGroup = _chooseTraitGivenArray(xenGroupsRemaining);
-//                xenGroupsRemaining[_myData.xenGroup] -= 1;
-//            }
-//            else if(i==4){
-//                _myData.command = _chooseTraitGivenArray(commandsRemaining);
-//                commandsRemaining[_myData.command] -= 1;
-//            }
-//            else if(i==5){
-//                _myData.response = _chooseTraitGivenArray(responsesRemaining);
-//                responsesRemaining[_myData.response] -= 1;
-//            }
-//        }
-//
-//        _myData.rarity = tierOneClearanceLevelTotals[_myData.clearanceLevel]*10**10
-//            + (stationTotals[_myData.station] + securityTerminalTotals[_myData.securityTerminal] + xenGroupTotals[_myData.xenGroup]
-//              + commandTotals[_myData.command] + responseTotals[_myData.response])*10**5
-//            +  3000 - (whiteList[msg.sender] < 3000 ? whiteList[msg.sender] : 3000);
-//
-//        tokenIdToPackedData[tokenCounter] = packDataStructure(_myData);
-//        _safeMint(msg.sender, tokenCounter);
-//
-//        emit MultipassCreated(tokenCounter, msg.sender, tokenIdToPackedData[tokenCounter], block.timestamp);
-//
-//        tokenCounter = tokenCounter + 1;
     }
 
     constructor(address _BytesAddress, address _NeoTokyoAddress, string memory _backgroundImageLink) ERC721("Black Meta Multipass", "BMPASS") Ownable() {
@@ -1899,13 +1837,15 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
         BytesERC20 = IERC20(_BytesAddress);
         NeoTokyoContract = IERC721Enumerable(_NeoTokyoAddress);
-        requiredBytesToMint = 25;
+        requiredBytesToMint = 25*10**18;
         backgroundImageLink = _backgroundImageLink;
+
+        overlayBaselink = "https://gateway.pinata.cloud/ipfs/Qmatb39WvXzQSVrhK4ovNxYqL6iHHyEBfxnkrSFt9cX7Lr";
     }
 
     // Required to receive ETH
     receive() external payable {
-        emit ReceivedETH(msg.sender, msg.value, block.timestamp);
+//        emit ReceivedETH(msg.sender, msg.value, block.timestamp);
     }
 
 
@@ -1918,9 +1858,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             "%3Cpath id='path",
             toString(_line),
             "'%3E %3Canimate attributeName='d' from='m50, ",
-            toString(170 + _line*14), // todo-- this assume _line starts at 0
+            toString(170 + _line*14),
             " h0' to='m50, ",
-            toString(170 + _line*14), // todo-- this assume _line starts at 0
+            toString(170 + _line*14),
             " h1100' dur='",
             toString(_duration),
             "s' begin='",
@@ -1948,11 +1888,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //    function getRewardRateOfTokenId(uint256 citizenId) public view returns (uint256) {}
 //    function getGenderOfTokenId(uint256 citizenId) public view returns (bool) {}
 
-    // todo-- update toString into toString
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
         Data memory _myData = unpackData(_tokenId);
-
 
         string memory style = string(abi.encodePacked(
           "%3Cstyle%3E",
@@ -2002,6 +1940,21 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             'C:%3E  '
         ];
 
+//        // todo -- adjust overlay
+//        string memory overlayLink; // = "https://gateway.pinata.cloud/ipfs/QmTu68VW25ZkbKRFyc7hB9uVU7wFJYBPoqLCnbLKB1e53n";
+//        if (_myData.clearanceLevel < 2) {
+////            overlayLink = overlayLinks[0];
+//            overlayLink = "https://gateway.pinata.cloud/ipfs/QmTu68VW25ZkbKRFyc7hB9uVU7wFJYBPoqLCnbLKB1e53n";
+//        }
+////        else if (_myData.clearanceLevel != 12) {
+////            overlayLink = overlayLinks[1];
+////        }
+
+        string memory colorOverlay = string(abi.encodePacked(
+                "%3Cimage xlink:href='", overlayBaselink ,"/", toString(_myData.clearanceLevel) ,  ".png' width='600' height='600' /%3E"
+            ));
+
+
         string memory textOverlay="";
         uint256 startTime = 0;
         uint256 duration = 5;
@@ -2026,8 +1979,6 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         ));
 
 
-    //getSVGTextGivenLine(line, duration, begin)
-
         string memory mainImage;
 
         // todo -- updateable link
@@ -2041,7 +1992,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
             // Main image
             mainImage,
+            colorOverlay, // todo - may need to go over text
             header,
+
 
            // text outlines
             textOverlay,
@@ -2105,9 +2058,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
                 ', {"trait_type": "response", "value": "', // "display_type": "number",
             responses[_myData.response],   '" }',
             ', {"trait_type": "rarity", "value": "', // "display_type": "number",
-            toString(_myData.rarity),   '" }', // todo
-            ', {"trait_type": "rarityRanking", "value": "', // "display_type": "number",
-            toString(getRanking(_tokenId)),   '" }'
+            toString(_myData.rarity),   '" }'
+            // removed rarity ranking because of how expensive it would be on resources. Could have run it once at end, but... gas
         ));
 
         json_str = string(abi.encodePacked(json_str,
