@@ -5,8 +5,7 @@ def main():
 
 
     svg = '''
-https://gateway.pinata.cloud/ipfs/QmePMp51D364ZpTg7VLKUhuPRawkTK2EHBj7JG6LmsLsF8
-
+    25%
 '''
 
 

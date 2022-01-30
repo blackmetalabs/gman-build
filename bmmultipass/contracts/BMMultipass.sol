@@ -1603,7 +1603,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// Core Functions /////////
     //////////////////////////////////
 
-    // does not take into account OG status (no level1)
+    /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
+        @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
+      */
     function getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) view external returns(string[] memory) {
         uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_Bytes);
         string[] memory availableClearanceLevelNames = new string[](availableClearanceLevels.length);
@@ -1615,6 +1617,9 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return availableClearanceLevelNames;
     }
 
+    /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
+        @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
+      */
     function _getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) private view returns(uint256[] memory) {
         uint256[] memory availableClearanceLevels;
         uint256 decimals = 18;
@@ -1662,6 +1667,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
 
     // these numbers need to be in order of value.
+    /** @dev choose an index based on randomness, probablity based on relative total in index
+        @param _availableItems -- An array of integers, each representing availibility out of the whole array
+        // example: [1,1,2] => gives an array which will yield the following 25%=>0, 25% =>1, 50% 2
+      */
     function _chooseTraitGivenArray(uint256[] memory _availableItems) internal view returns(uint256) {
         uint256 total = 0; // todo -- loop  through and get total
         uint256 summed = 0;
@@ -1682,10 +1691,19 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         }
     }
 
-    function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) public payable nonReentrant {
-        uint256 doesOwnToken = 0;
+
+    /** @dev Claims (mint) for those who hold Black Meta IDs
+        @param _BytesReceived -- Bytes to transfer to contract. Used for minting, higher amounts give better mints.
+        @param _BlackMetaIdentity -- ID# of BlackMetaIdentity--not citizen.
+      */
+    function claimForPersonnel(uint256 _BytesReceived, uint256 _BlackMetaIdentity) external payable nonReentrant {
+        require(whiteListHasMinted[msg.sender] < 2);
+        require(whiteList[msg.sender]!=0, "Not whitelisted");
         require(personnelMintsRemaining > 0, "Personnel limit reached.");
+
+        uint256 doesOwnToken = 0;
         personnelMintsRemaining -= 1;
+        whiteListHasMinted[msg.sender] += 2;
 
         for(uint256 i=0; i< BlackMetaIdentityContract.balanceOf(msg.sender);i++){
             if(BlackMetaIdentityContract.tokenOfOwnerByIndex(msg.sender, i) == _BlackMetaIdentity){
@@ -1693,13 +1711,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
                 break;
             }
         }
+
         require(doesOwnToken==1, "Not Owner of this token.");
         require(tokenIdToBlackMetaIdentityClaimedStatus[_BlackMetaIdentity]==0, "Citizen already Claimed");
         tokenIdToBlackMetaIdentityClaimedStatus[_BlackMetaIdentity] = 1;
 
         _claim(_BytesReceived);
-        require(whiteListHasMinted[msg.sender] < 2);
-        whiteListHasMinted[msg.sender] += 2;
 
     }
 
@@ -1755,13 +1772,15 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
 
 
-
+    /** @dev Claims (mint) Black Meta Multipass
+        @param _BytesReceived -- Bytes to transfer to contract. Used for minting, higher amounts give better mints.
+      */
     function _claim(uint256 _BytesReceived) internal { // removed payable
         require (msg.value >= mintFee);
         require(BytesERC20.balanceOf(msg.sender) >= _BytesReceived && _BytesReceived >= requiredBytesToMint, "Insufficient Byte balance");
-        require(whiteList[msg.sender]!=0, "Not whitelisted");
 
-        if(requiredBytesToMint > 0){
+        // owner can mint free, but this function is limited to being called internally (see constructor)
+        if(requiredBytesToMint > 0 && msg.sender != owner()){
             require(BytesERC20.transferFrom(msg.sender, address(this), _BytesReceived), "Failed to transfer Bytes");
         }
 
@@ -1822,16 +1841,25 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     }
 
-    function claim(uint256 _BytesReceived) public payable nonReentrant {
+    /** @dev Claims (mint) Black Meta Multipass
+        @param _BytesReceived -- Bytes to transfer to contract. Used for minting, higher amounts give better mints.
+      */
+    function claim(uint256 _BytesReceived) external payable nonReentrant {
+        require(whiteList[msg.sender]!=0, "Not whitelisted");
         require(blackMetaMintsRemaining > 0, "Limit reached for regular mints.");
-        blackMetaMintsRemaining -= 1;
-
         require(whiteListHasMinted[msg.sender] == 0 || whiteListHasMinted[msg.sender] == 2);
+
+        blackMetaMintsRemaining -= 1;
         whiteListHasMinted[msg.sender] += 1;
 
         _claim(_BytesReceived);
     }
 
+    /** @dev Constructor for Black Meta Multipass
+        @param _BytesAddress -- Contract Address for Bytes.
+        @param _NeoTokyoAddress -- Contract Address for NeoTokyoCitizen.
+        @param _backgroundImageLink -- Background Image for tokenUri Image
+      */
     constructor(address _BytesAddress, address _NeoTokyoAddress, string memory _backgroundImageLink) ERC721("Black Meta Multipass", "BMPASS") Ownable() {
 //        bytesContractAddress = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
@@ -1840,7 +1868,15 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         requiredBytesToMint = 25*10**18;
         backgroundImageLink = _backgroundImageLink;
 
-        overlayBaselink = "https://gateway.pinata.cloud/ipfs/Qmatb39WvXzQSVrhK4ovNxYqL6iHHyEBfxnkrSFt9cX7Lr";
+        // for special effects on top of terminal, based on rarity
+        overlayBaselink = "https://gateway.pinata.cloud/ipfs/QmewWamj3jxJg1uHqD358UJThnqoy7cUwxt1eGQBk5b7Fk";
+
+        // create 4 rare Multipasses for owner
+        _claim(500*10**18);
+        _claim(500*10**18);
+        _claim(300*10**18);
+        _claim(300*10**18);
+        personnelMintsRemaining -= 4; //
     }
 
     // Required to receive ETH
@@ -1853,6 +1889,12 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// MetaData, Image Functions /////////
     /////////////////////////////////////////////
 
+    /** @dev Formats string into code for typing on image terminal
+        @param _line -- vertical starting position.
+        @param _duration -- animation duration.
+        @param _startTime -- time to begin animation (invisible beforehand).
+        @param _txt -- text to animate (width/characters must be less than terminal size--or visual overflow)
+      */
     function getSVGTextGivenLine(uint256 _line, uint256 _duration, uint256 _startTime, string memory _txt) internal view returns (string memory) {
         string memory ret = string(abi.encodePacked(
             "%3Cpath id='path",
@@ -1888,9 +1930,30 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //    function getRewardRateOfTokenId(uint256 citizenId) public view returns (uint256) {}
 //    function getGenderOfTokenId(uint256 citizenId) public view returns (bool) {}
 
+    // todo -- does anything internal call this? set to external?
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         require(_exists(_tokenId), "ERC721Metadata: URI query for nonexistent token");
         Data memory _myData = unpackData(_tokenId);
+
+//        string[] memory _fontColors = new string[](13);
+
+//        string memory fontColor = "";
+//        if (_myData.clearanceLevel == 0){
+        string[13] memory _fontColors = [
+            '00DEFF',
+            '00DEFF',
+            'C5ACFF',
+            'C5ACFF',
+            '8BFF7C',
+            '8BFF7C',
+            '8BFF7C',
+            'FF8D8D',
+            'FF8D8D',
+            'FF8D8D',
+            'FFFE8D',
+            'FFFE8D',
+            'B1FCFF'
+        ];
 
         string memory style = string(abi.encodePacked(
           "%3Cstyle%3E",
@@ -1899,19 +1962,18 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //                    "font-family: 'Courier New';",
                     "font-family: 'VT323', monospace;",
                     "font-size:12px;",
-                    "fill: hsl(80,61%25,50%25);%7D",
+//                    "fill: hsl(310,61%25,50%25);%7D",
+                    "fill: %23", _fontColors[_myData.clearanceLevel],
                 "%7D",
           "%3C/style%3E"
         ));
+//                    "fill: hsl(80,61%25,50%25);%7D",
 
-//fill='hsl(80,61%25,50%25)'
-        ////////////
         string memory header = string(abi.encodePacked(
-//            "%3Cstyle%3E .svgBody %7Bfont-family: 'Courier New';opacity:0.9; .bm %7Bfont-size:20px;fill: hsl(80,61%25,50%25);%7D %3C/style%3E",
             style,
-            "%3Ctext fill='hsl(80,61%25,50%25)' class='bm' x='200' y='90'%3EA.T.H.E.N.A. 9000 OPERATING SYSTEM %3C/text%3E",
-            "%3Ctext fill='hsl(80,61%25,50%25)' class='bm' x='170' y='110'%3ECOPYRIGHT 2075-2121 BLACK META CORPORATION%3C/text%3E",
-            "%3Ctext fill='hsl(80,61%25,50%25)' class='bm' x='230' y='130'%3E --SECURITY TERMINAL %23--  %3C/text%3E"
+            "%3Ctext class='bm' x='50%25' y='90' text-anchor='middle' %3EA.T.H.E.N.A. 9000 OPERATING SYSTEM %3C/text%3E",
+            "%3Ctext class='bm' x='50%25' y='110' text-anchor='middle' %3ECOPYRIGHT 2075-2121 BLACK META CORPORATION%3C/text%3E",
+            "%3Ctext class='bm' x='50%25' y='130' text-anchor='middle' %3E --SECURITY TERMINAL %23--  %3C/text%3E"
         ));
 
         string[23] memory textLines = [
@@ -1940,20 +2002,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             'C:%3E  '
         ];
 
-//        // todo -- adjust overlay
-//        string memory overlayLink; // = "https://gateway.pinata.cloud/ipfs/QmTu68VW25ZkbKRFyc7hB9uVU7wFJYBPoqLCnbLKB1e53n";
-//        if (_myData.clearanceLevel < 2) {
-////            overlayLink = overlayLinks[0];
-//            overlayLink = "https://gateway.pinata.cloud/ipfs/QmTu68VW25ZkbKRFyc7hB9uVU7wFJYBPoqLCnbLKB1e53n";
-//        }
-////        else if (_myData.clearanceLevel != 12) {
-////            overlayLink = overlayLinks[1];
-////        }
-
+        // OVERLAY MUST BE SAME FORMAT
         string memory colorOverlay = string(abi.encodePacked(
-                "%3Cimage xlink:href='", overlayBaselink ,"/", toString(_myData.clearanceLevel) ,  ".png' width='600' height='600' /%3E"
+                "%3Cimage xlink:href='", overlayBaselink ,"/", toString(_myData.clearanceLevel) ,  ".webp' width='600' height='600' /%3E"
             ));
-
 
         string memory textOverlay="";
         uint256 startTime = 0;
@@ -1972,16 +2024,13 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
 
         string memory footer = string(abi.encodePacked(
-            "%3Cpath id='pathfinal'%3E%3Canimate attributeName='d' from='m120,525 h0' to='m120,525 h1100' dur='7s' begin='", toString(startTime) , "s' fill='freeze'/%3E%3C/path%3E",
+            "%3Cpath id='pathfinal'%3E%3Canimate attributeName='d' from='m180,525 h0' to='m180,525 h1100' dur='7s' begin='", toString(startTime) , "s' fill='freeze'/%3E%3C/path%3E",
             "%3Ctext%3E%3CtextPath xlink:href='%23pathfinal' class='bm'%3ERETURN: enter | BACKSPACE : delete | F1: main menu%3C/textPath%3E%3C/text%3E"
-//            "%3Cstyle%3E .svgBody %7Bfont-family: 'Courier New';opacity:0.9;background-size:cover;background-size: auto auto;background-repeat: no-repeat;background-image: url(https://gateway.pin",
-//            "ata.cloud/ipfs/QmcGVfK6SW45GFCQZLHe32myGvo6MXaEUerRAWTWM3UHtu?preview=1);%7D .bm %7Bfont-size:20px;fill: hsl(80,61%25,50%25);%7D %3C/style%3E"
         ));
 
 
         string memory mainImage;
 
-        // todo -- updateable link
         mainImage = string(abi.encodePacked(
             "%3Cimage xlink:href='", backgroundImageLink ,"' width='600' height='600' /%3E"
         ));
@@ -1992,9 +2041,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
             // Main image
             mainImage,
-            colorOverlay, // todo - may need to go over text
+            colorOverlay,
             header,
-
 
            // text outlines
             textOverlay,
@@ -2008,8 +2056,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         return formatTokenURI(_tokenId, svgToImageURI(SVG));
     }
 
-
-    function svgToImageURI(string memory svg) public pure returns (string memory) {
+    /** @dev Converts svg to dataURI
+        @param svg -- svg to turn into dataURI.
+      */
+    function svgToImageURI(string memory svg) internal pure returns (string memory) {
         bool ENCODE = false;
         string memory baseURL = "data:image/svg+xml;base64,";
 
@@ -2024,7 +2074,11 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     }
 
 
-    function formatTokenURI(uint256 _tokenId, string memory imageURI) public view returns (string memory) {
+    /** @dev Packs metadata, including image, into a dataURI
+        @param _tokenId -- ID of BMMultipass
+        @param imageURI -- URI of image
+      */
+    function formatTokenURI(uint256 _tokenId, string memory imageURI) internal view returns (string memory) {
         Data memory _myData = unpackData(_tokenId);
         string memory json_str = string(abi.encodePacked(
             '{"description": "The ticket into Black Meta Universe of Neo Tokyo"',
@@ -2037,13 +2091,11 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             clearanceLevels[_myData.clearanceLevel],   '" }'
         ));
 
-//    enum DataProperties {clearanceLevel, station, securityTerminal, xenGroup, command, response}
-        // concatenate
         json_str = string(abi.encodePacked(json_str,
             ', {"trait_type": "station", "value": "',
             stations[_myData.station],   '" }',
             ', {"trait_type": "securityTerminal", "value": "', // "display_type": "number",
-            securityTerminals[_myData.securityTerminal],   '" }' // todo --consider updating this to uint256
+            securityTerminals[_myData.securityTerminal],   '" }'
         ));
 
         json_str = string(abi.encodePacked(json_str,
@@ -2055,7 +2107,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 
 
         json_str = string(abi.encodePacked(json_str,
-                ', {"trait_type": "response", "value": "', // "display_type": "number",
+            ', {"trait_type": "response", "value": "', // "display_type": "number",
             responses[_myData.response],   '" }',
             ', {"trait_type": "rarity", "value": "', // "display_type": "number",
             toString(_myData.rarity),   '" }'
@@ -2162,17 +2214,13 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         }
         return string(buffer);
     }
-
-
 }
-
 
 
 // todo -- remove after testing
 //////////////////////////
 ///////// NEO TOKYO //////
 //////////////////////////
-
 
 contract NTCitizenDeploy is ERC721Enumerable, IERC721Receiver, ReentrancyGuard, Ownable {
 
