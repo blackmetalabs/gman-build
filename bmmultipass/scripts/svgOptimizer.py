@@ -5,7 +5,7 @@ def main():
 
 
     svg = '''
-    25%
+SA/RA
 '''
 
 
