@@ -1319,6 +1319,10 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         uint256 rarity; // 0 <= x <= 12
     }
 
+//    struct traitAmounts {
+//        uint16[13] value;
+//    }
+
     // used for limiting what traits are minted
 //    uint256[] private tierOneClearanceLevelsRemaining = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240];
 //    uint256[] private tierOneClearanceLevelTotals = [2, 4, 16, 20, 18, 21, 24, 27, 30, 36, 60, 102, 240]; // probably not needed
@@ -1326,7 +1330,7 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 //    uint256[] private tierTwoClearanceLevelTotals = [28, 36, 44, 60, 72, 84, 96, 108, 120, 144, 240, 408, 960]; // probably not needed
 
 
-    uint256[] private clearanceLevelsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+    uint256[] public clearanceLevelsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
     // used for limiting what traits are minted
     uint256[] private stationsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
     uint256[] private securityTerminalsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
@@ -1334,6 +1338,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     uint256[] private commandsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
     uint256[] private responsesRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
     uint256[] private insultsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+
+
 
     // Used for rarity scores
 //    uint256[] private stationTotals = [30, 40, 60, 80, 90, 105, 120, 135, 150, 180, 300, 510, 1200];
@@ -1700,6 +1706,30 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
     ///////// Core Functions /////////
     //////////////////////////////////
 
+// Expensive
+//    function getAvailableClearanceLevels() view external returns(string[] memory) {
+//        uint256 _available;
+//        for(uint256 i=0; i< clearanceLevelsRemaining.length; i++){
+//            if(clearanceLevelsRemaining[i]>0){
+//                _available +=1;
+//            }
+//        }
+//        uint256[] memory availableClearanceLevels = new uint256[](_available);
+//        for(uint256 i=0; i< clearanceLevelsRemaining.length; i++){
+//            if(clearanceLevelsRemaining[i]>0){
+//                availableClearanceLevels[i] = (clearanceLevelsRemaining[i]);
+//            }
+//        }
+//
+//        string[] memory availableClearanceLevelNames = new string[](availableClearanceLevels.length);
+//
+//        for(uint256 i; i< availableClearanceLevels.length; i++){
+//            availableClearanceLevelNames[i] = clearanceLevels[availableClearanceLevels[i]];
+//        }
+//
+//        return availableClearanceLevelNames;
+//    }
+
     /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
         @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
       */
@@ -1799,6 +1829,36 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             }
         }
     }
+
+    // these numbers need to be in order of value.
+    /** @dev choose an index based on randomness, probablity based on relative total in index
+        @param _enum -- enum of trait type
+      */
+    function _chooseTraitGivenArrayNew(DataProperties _enum) internal view returns(uint256) {
+        uint256 total = 0;
+        uint256 summed = 0;
+
+        uint256[] memory _availableItems;
+
+        // todo -- use enums to find trait
+        // if 0, select from restricted clearanceLevels
+
+        for(uint256 i=0;i < _availableItems.length; i++){
+            total += _availableItems[i];
+        }
+        require(total!=0, "Minting exhausted.");
+
+        bytes memory hashString = (abi.encodePacked(block.difficulty, block.timestamp, msg.sender, tokenCounter, _availableItems[0], _availableItems.length ));
+        uint256 pseudoRand = uint256(keccak256(hashString)) % total;
+
+        for(uint256 i=0;i< _availableItems.length; i++){
+            summed += _availableItems[i];
+            if(pseudoRand < summed){
+                return i;
+            }
+        }
+    }
+
 
 
     /** @dev Claims (mint) for those who hold Black Meta IDs
@@ -1922,6 +1982,8 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
         commandsRemaining[_myData.command] -= 1;
         _myData.response = _chooseTraitGivenArray(responsesRemaining);
         responsesRemaining[_myData.response] -= 1;
+        _myData.insult = _chooseTraitGivenArray(insultsRemaining);
+        responsesRemaining[_myData.insult] -= 1;
 
         // todo Make sure this is accurate
         // shift numbers at the end so the number is truncated--doesn't affect other section
@@ -2328,392 +2390,5 @@ contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
             value /= 10;
         }
         return string(buffer);
-    }
-}
-
-
-// todo -- remove after testing
-//////////////////////////
-///////// NEO TOKYO //////
-//////////////////////////
-
-contract NTCitizenDeploy is ERC721Enumerable, IERC721Receiver, ReentrancyGuard, Ownable {
-
-    uint256 constant SECONDS_IN_A_YEAR = 31536000;
-    bool citizenMintActive;
-    bool boughtIdentitiesActive;
-    bool femaleActive;
-    address citizenMintContract;
-    address citizenAlternateMintContract;
-    address public vaultContract;
-    address public itemContract;
-    address public identityContract;
-    address public boughtIdentityContract;
-    address public landContract;
-    address public bytesContract;
-    uint256 newestCitizen;
-    uint256 public mintedIdentityCost = 2000 ether;
-    uint256 public changeGenderCost = 25 ether;
-    uint256 public changeSpecialMessageCost = 10 ether;
-    uint256 creationTime;
-    uint256 endDelta = 157680000;
-
-    // Mapping for vault tokenIds that were used to creat a citizen
-    mapping(uint256 => uint256) private _vaultDataByCitizenId;
-    // Mapping for identity tokenIds that were used to creat a citizen
-    mapping(uint256 => uint256) private _identityDataByCitizenId;
-    // Mapping for item cache tokenIds that were used to creat a citizen
-    mapping(uint256 => uint256) private _itemCacheDataByCitizenId;
-    // Mapping for land deed tokenIds that were used to creat a citizen
-    mapping(uint256 => uint256) private _landDeedDataByCitizenId;
-    // Mapping for special messages uploaded when a citizen was created
-    mapping(uint256 => string) private _specialMessageByCitizenId;
-    // Mapping for reward by citizen
-    mapping(uint256 => uint256) private _rewardRateByCitizenId;
-    // Mapping for citizen creation date
-    mapping(uint256 => uint256) private _citizenCreationTime;
-    // Mapping for gender of a citizen
-    mapping(uint256 => bool ) private _genderFemale;
-
-    function getIdentityIdOfTokenId(uint256 citizenId) public view returns (uint256) {
-        return _identityDataByCitizenId[citizenId];
-    }
-    function getVaultIdOfTokenId(uint256 citizenId) public view returns (uint256) {
-        return _vaultDataByCitizenId[citizenId];
-    }
-    function getItemCacheIdOfTokenId(uint256 citizenId) public view returns (uint256) {
-        return _itemCacheDataByCitizenId[citizenId];
-    }
-    function getLandDeedIdOfTokenId(uint256 citizenId) public view returns (uint256) {
-        return _landDeedDataByCitizenId[citizenId];
-    }
-    function getSpecialMessageOfTokenId(uint256 citizenId) public view returns (string memory) {
-        return _specialMessageByCitizenId[citizenId];
-    }
-    function getRewardRateOfTokenId(uint256 citizenId) public view returns (uint256) {
-        return _rewardRateByCitizenId[citizenId];
-    }
-    function getGenderOfTokenId(uint256 citizenId) public view returns (bool) {
-        return _genderFemale[citizenId];
-    }
-
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) public override pure returns (bytes4) {
-        return this.onERC721Received.selector ^ 0x23b872dd;
-    }
-
-    function tokenURI(uint256 tokenId) override public view returns (string memory) {
-        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
-
-        string memory output;
-//        IMintContract dataContract;
-//
-//        if(_genderFemale[tokenId])
-//        {
-//            dataContract = IMintContract(citizenAlternateMintContract);
-//        }
-//        else
-//        {
-//            dataContract = IMintContract(citizenMintContract);
-//        }
-
-        output = "this is not real."; // dataContract.generateURI(tokenId);
-
-        return output;
-    }
-
-    function getRewardRate(address _user) public view returns(uint256) {
-        uint256 rewardRate;
-        for(uint256 index = 0; index < ERC721.balanceOf(_user); index++)
-        {
-            rewardRate = rewardRate + _rewardRateByCitizenId[tokenOfOwnerByIndex(_user, index)];
-        }
-        return rewardRate;
-    }
-
-    function getRewardsRateForTokenId(uint256 tokenId) public view returns(uint256){
-        require(_exists(tokenId) || tokenId == 0, "Citizen does not exist");
-        return rewardRateByTokenId(tokenId);
-    }
-
-    function rewardRateByTokenId(uint256 tokenId) internal view returns(uint256){
-        require(_exists(tokenId) || tokenId == 0, "Citizen does not exist");
-        if(tokenId > 0)
-        {
-            return _rewardRateByCitizenId[tokenId] + ((block.timestamp - _citizenCreationTime[tokenId]) / SECONDS_IN_A_YEAR);
-        }
-        return 0;
-    }
-
-    function getCurrentOrFinalTime() public view returns(uint256) {
-        if(block.timestamp < getEnd())
-        {
-            return block.timestamp;
-        }
-        else
-        {
-            return getEnd();
-        }
-    }
-
-    //Obsolete due to rewards mapping implementation
-    function reduceRewards(uint256, address) public {}
-
-    //Obsolete due to rewards mapping implementation
-    function increaseRewards(uint256, address) public {}
-
-    function getEnd() public view returns(uint256) {
-        return creationTime + endDelta;
-    }
-
-    function calculateCitizenReward(uint256 identityId, uint256 vaultId) internal view returns(uint256){
-//        IMintContract dataContract = IMintContract(citizenMintContract);
-//        return dataContract.calculateRewardRate(identityId, vaultId);
-        return 200;
-    }
-
-
-    // modified to easily create citizens for testing
-    function createCitizen(uint256 identityId, uint256 vaultId, uint256 itemCacheId, uint256 landDeedId, bool genderFemale, string memory specialMessage) public nonReentrant {
-
-        _safeMint(_msgSender(), newestCitizen + 1);
-
-        newestCitizen++;
-
-//        ERC721 _identityContract;
-
-//        if(identityId < 2300)
-//        {
-//            _identityContract = ERC721(identityContract);
-//        }
-//        else
-//        {
-//            _identityContract = ERC721(boughtIdentityContract);
-//        }
-//        _identityContract.transferFrom(_msgSender(), address(this), identityId);
-
-
-        _vaultDataByCitizenId[newestCitizen] = 777;
-        _identityDataByCitizenId[newestCitizen] = identityId;
-        _itemCacheDataByCitizenId[newestCitizen] = itemCacheId;
-        _landDeedDataByCitizenId[newestCitizen] = landDeedId;
-        if(genderFemale)
-        {
-            _genderFemale[newestCitizen] = genderFemale;
-        }
-        if(bytes(specialMessage).length > 0)
-        {
-            _specialMessageByCitizenId[newestCitizen] = specialMessage;
-        }
-        _rewardRateByCitizenId[newestCitizen] = 777;
-
-        _citizenCreationTime[newestCitizen] = block.timestamp;
-
-//        IByteContract byteToken = IByteContract(bytesContract);
-//        byteToken.updateRewardOnMint(_msgSender(), newestCitizen);
-    }
-
-    function disassembleCitizen(uint256 citizenId)public nonReentrant {
-        require(ownerOf(citizenId) == _msgSender(), "You do not own that citizen");
-
-//        ERC721 _identityContract;
-
-//        if(_identityDataByCitizenId[citizenId] < 2300)
-//        {
-//            _identityContract = ERC721(identityContract);
-//        }
-//        else
-//        {
-//            _identityContract = ERC721(boughtIdentityContract);
-//        }
-//        _identityContract.transferFrom(address(this), _msgSender(), _identityDataByCitizenId[citizenId]);
-//
-//        if(_vaultDataByCitizenId[citizenId] > 0)
-//        {
-//            ERC721 _vaultContract = ERC721(vaultContract);
-//            _vaultContract.transferFrom(address(this), _msgSender(), _vaultDataByCitizenId[citizenId]);
-//        }
-//
-//        ERC721 _itemContract = ERC721(itemContract);
-//        _itemContract.transferFrom(address(this), _msgSender(), _itemCacheDataByCitizenId[citizenId]);
-//
-//        ERC721 _landContract = ERC721(landContract);
-//        _landContract.transferFrom(address(this), _msgSender(), _landDeedDataByCitizenId[citizenId]);
-
-        _burn(citizenId);
-
-        delete _identityDataByCitizenId[citizenId];
-        delete _vaultDataByCitizenId[citizenId];
-        delete _itemCacheDataByCitizenId[citizenId];
-        delete _landDeedDataByCitizenId[citizenId];
-        delete _genderFemale[citizenId];
-        delete _specialMessageByCitizenId[citizenId];
-        delete _rewardRateByCitizenId[citizenId];
-    }
-
-     function changeGender(uint256 tokenId) public nonReentrant {
-//        require(femaleActive, "Females cannot be uploaded yet");
-//        require(ownerOf(tokenId) == _msgSender(), "You do not own that citizen");
-//
-//        IByteContract iBytes = IByteContract(bytesContract);
-//        iBytes.burn(_msgSender(), changeGenderCost);
-        _genderFemale[tokenId] = !_genderFemale[tokenId];
-     }
-
-     function changeSpecialMessage(uint256 tokenId, string memory _message) public nonReentrant {
-//        require(ownerOf(tokenId) == _msgSender(), "You do not own that citizen");
-//
-//        IByteContract iBytes = IByteContract(bytesContract);
-//        iBytes.burn(_msgSender(), changeSpecialMessageCost);
-        _specialMessageByCitizenId[tokenId] = _message;
-     }
-
-     function setChangeGenderCost(uint256 _cost) external onlyOwner {
-         changeGenderCost = _cost;
-     }
-
-     function setChangeMessageCost(uint256 _cost) external onlyOwner {
-         changeSpecialMessageCost = _cost;
-     }
-
-    function vaultValidated(uint256 vaultId) internal view returns (bool) {
-//        ERC721Enumerable vaultEnumerable = ERC721Enumerable(vaultContract);
-//        return(vaultEnumerable.ownerOf(vaultId) == _msgSender());
-        return true;
-    }
-
-    function identityValidated(uint256 identityId) internal view returns (bool) {
-//        ERC721Enumerable identityEnumerable;
-//        if(identityId < 2300)
-//        {
-//            identityEnumerable = ERC721Enumerable(identityContract);
-//        }
-//        else
-//        {
-//            identityEnumerable = ERC721Enumerable(boughtIdentityContract);
-//        }
-//        return(identityEnumerable.ownerOf(identityId) == _msgSender());
-        return true;
-    }
-
-    function itemCacheValidated(uint256 itemCacheId) internal view returns (bool) {
-//        ERC721Enumerable itemCacheEnumerable = ERC721Enumerable(itemContract);
-//        return(itemCacheEnumerable.ownerOf(itemCacheId) == _msgSender());
-        return true;
-    }
-
-    function landDeedValidated(uint256 landDeedId) internal view returns (bool) {
-//        ERC721Enumerable landDeedEnumerable = ERC721Enumerable(landContract);
-//        return(landDeedEnumerable.ownerOf(landDeedId) == _msgSender());
-        return true;
-    }
-
-    function setFemaleActive() public onlyOwner {
-        femaleActive = !femaleActive;
-    }
-
-    function setCitizenMintActive() public onlyOwner {
-        citizenMintActive = !citizenMintActive;
-    }
-
-    function setBoughtIdentitiesActive() public onlyOwner {
-        boughtIdentitiesActive = !boughtIdentitiesActive;
-    }
-
-    function setIdentityAddress(address contractAddress) public onlyOwner {
-        identityContract = contractAddress;
-    }
-
-    function setLandContract(address contractAddress) public onlyOwner {
-        landContract = contractAddress;
-    }
-
-    function setItemContract(address contractAddress) public onlyOwner {
-        itemContract = contractAddress;
-    }
-
-    function setVaultAddress(address contractAddress) public onlyOwner {
-        vaultContract = contractAddress;
-    }
-
-    function setBytesAddress(address contractAddress) public onlyOwner {
-        bytesContract = contractAddress;
-    }
-
-    function setCitizenMintContract(address contractAddress) public onlyOwner {
-        citizenMintContract = contractAddress;
-    }
-
-    function setCitizenAlternateMintContract(address contractAddress) public onlyOwner {
-        citizenAlternateMintContract = contractAddress;
-    }
-
-    function setMintedIdentityCost(uint256 _cost) public onlyOwner {
-        mintedIdentityCost = _cost;
-    }
-
-    function mintIdentity() public
-    {
-//        require(boughtIdentitiesActive, "Identities cannot be bought yet");
-//        require(address(boughtIdentityContract) != address(0), "Identity contract not set");
-//        IByteContract iBytes = IByteContract(bytesContract);
-//        iBytes.burn(_msgSender(), mintedIdentityCost);
-//        IBoughtIdentityContract iBoughtIdentitiesContract = IBoughtIdentityContract(boughtIdentityContract);
-//        iBoughtIdentitiesContract.claimIdentity(_msgSender());
-    }
-
-    function getReward() external {
-//        IByteContract byteToken = IByteContract(bytesContract);
-//        byteToken.updateReward(msg.sender, address(0), 0);
-//		byteToken.getReward(msg.sender);
-	}
-
-	function transferFrom(address from, address to, uint256 tokenId) public override {
-//		IByteContract byteToken = IByteContract(bytesContract);
-//        byteToken.updateReward(from, to, tokenId);
-//		ERC721.transferFrom(from, to, tokenId);
-	}
-
-	function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override {
-//		IByteContract byteToken = IByteContract(bytesContract);
-//        byteToken.updateReward(from, to, tokenId);
-//		ERC721.safeTransferFrom(from, to, tokenId, _data);
-	}
-
-    function toString(uint256 value) internal pure returns (string memory) {
-    // Inspired by OraclizeAPI's implementation - MIT license
-    // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
-
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
-    }
-
-    constructor() ERC721("Neo Tokyo Citizen", "NTCTZN") Ownable() {
-        creationTime = block.timestamp;
-        bytesContract = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
-        vaultContract = 0xab0b0dD7e4EaB0F9e31a539074a03f1C1Be80879;
-        itemContract = 0x0938E3F7AC6D7f674FeD551c93f363109bda3AF9;
-        identityContract = 0x86357A19E5537A8Fba9A004E555713BC943a66C0;
-        boughtIdentityContract = 0x835a60cc60B808e47825daa79A9Da6C9fF3a892E;
-        landContract = 0x3C54b798b3aAD4F6089533aF3bdbD6ce233019bB;
-        citizenMintContract = 0xf1F199C5a6B41231902B2f6E93e8edC59FaF507b;
     }
 }
