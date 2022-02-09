@@ -1764,7 +1764,7 @@ contract Whitelist is Ownable {
 contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
 
     IERC20 BytesERC20;
-    IERC721Enumerable BlackMetaIdentityContract;
+//    IERC721Enumerable BlackMetaIdentityContract;
     Whitelist whiteListContract;
 
 //    uint256 public tokenCounter; // todo replace
@@ -1775,7 +1775,8 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
 //    uint256 private requiredBytesToMint;
 //    uint256 private mintFee; // Ethereum Fee
 //    uint256 private personnelMintsRemaining = 500;
-    uint256 private blackMetaMintsRemaining = 3000;
+//    uint256 private blackMetaMintsRemaining = 3000;
+    uint256 private maxSupply = 3000;
     uint256 private mintingPermitted; // on/off for turning on minting
     uint256 private adminBulkClaimCalledAmount;
 
@@ -1800,15 +1801,15 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
     }
 
     // used for limiting what traits are minted
-    uint256[] private clearanceLevelsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-    uint256[] private stationsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-    uint256[] private securityTerminalsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-    uint256[] private xenGroupsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-    uint256[] private commandsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-    uint256[] private responsesRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-    uint256[] private insultsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+    uint16[13] private clearanceLevelsRemaining = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+    uint16[13] private stationsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint16[13] private securityTerminalsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint16[13] private xenGroupsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint16[13] private commandsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint16[13] private responsesUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint16[13] private insultsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    uint256[13] private traitTotals = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+    uint16[13] private traitTotals = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
 
     string private overlayBaselink;
 
@@ -2153,70 +2154,146 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
     ///////// Core Functions /////////
     //////////////////////////////////
 
+
+    // todo -- update to new function
     /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
         @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
       */
     function getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) view external returns(string[] memory) {
-        uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_Bytes);
-        string[] memory availableClearanceLevelNames = new string[](availableClearanceLevels.length);
-
+        uint16[13] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytesNew(_Bytes);
+        uint256 count = 0;
+        for(uint256 i=0; i< availableClearanceLevels.length; i++){
+            if(availableClearanceLevels[i] > 0){
+                count += 1;
+            }
+        }
+        string[] memory availableClearanceLevelNames = new string[](count);
+        count = 0;
         for(uint256 i; i< availableClearanceLevels.length; i++){
-            availableClearanceLevelNames[i] = clearanceLevels[availableClearanceLevels[i]];
+            if(availableClearanceLevels[i] > 0){
+                availableClearanceLevelNames[count] = clearanceLevels[i];
+                count += 1;
+            }
         }
 
         return availableClearanceLevelNames;
     }
 
+
+
+//    // todo -- update to new function
+//    /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
+//        @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
+//      */
+//    function getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) view external returns(string[] memory) {
+//        uint256[] memory availableClearanceLevels = _getAvailableClearanceLevelsGivenBytes(_Bytes);
+//        string[] memory availableClearanceLevelNames = new string[](availableClearanceLevels.length);
+//
+//        for(uint256 i; i< availableClearanceLevels.length; i++){
+//            availableClearanceLevelNames[i] = clearanceLevels[availableClearanceLevels[i]];
+//        }
+//
+//        return availableClearanceLevelNames;
+//    }
+//
+//    /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
+//        @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
+//      */
+//    function _getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) private view returns(uint256[] memory) {
+//        uint256[] memory availableClearanceLevels;
+//
+//        uint256 minLevel; // lower by reference number
+//        uint256 maxLevel; // higher by reference number
+//        uint256 _count = 0;
+//        uint256 _counter = 0;
+//
+//        if(_Bytes < 50 ether) {
+//            minLevel = 10;
+//            uint256 whiteListPos = whiteListContract.whiteListPosition(msg.sender);
+//            maxLevel = 12 - ( ((OGPrivilege == 1) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
+//        }
+//        else if(_Bytes < 100 ether){
+//            minLevel = 7;
+//            maxLevel = 9;
+//        }
+//        else if(_Bytes < 200 ether){
+//            minLevel = 4;
+//            maxLevel = 6;
+//        }
+//        else if(_Bytes < 300 ether){
+//            minLevel = 2;
+//            maxLevel = 3;
+//        }
+//        else if(_Bytes < 400 ether){
+//            minLevel = 1;
+//            maxLevel = 1;
+//        }
+//        else {
+//            // already set to 0
+//        }
+//
+//        for(uint256 i=minLevel; i <= maxLevel; i++){
+//            if(clearanceLevelsRemaining[i]>0){
+//                _count += 1;
+//            }
+//        }
+//
+//        availableClearanceLevels = new uint256[](_count);
+//        for(uint256 i=minLevel; i <= maxLevel; i++){
+//            if(clearanceLevelsRemaining[i]>0){
+//                availableClearanceLevels[_counter] = i;
+//                _counter += 1;
+//            }
+//        }
+//
+//        return availableClearanceLevels;
+//    }
+
+
     /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
         @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
       */
-    function _getAvailableClearanceLevelsGivenBytes(uint256 _Bytes) private view returns(uint256[] memory) {
-        uint256[] memory availableClearanceLevels;
+    function _getAvailableClearanceLevelsGivenBytesNew(uint256 _Bytes) private view returns(uint16[13] memory) {
+        uint16[13] memory availableClearanceLevels;
 
         uint256 minLevel; // lower by reference number
         uint256 maxLevel; // higher by reference number
-        uint256 _count = 0;
-        uint256 _counter = 0;
+        uint256 total;
 
-        if (_Bytes >= 400 ether) {
-            minLevel = 0;
-            maxLevel = 0;
-        }
-        else if(_Bytes >= 300 ether){
-            minLevel = 1;
-            maxLevel = 1;
-        }
-        else if(_Bytes >= 200 ether){
-            minLevel = 2;
-            maxLevel = 3;
-        }
-        else if(_Bytes >= 100 ether){
-            minLevel = 4;
-            maxLevel = 6;
-        }
-        else if(_Bytes >= 50 ether){
-            minLevel = 7;
-            maxLevel = 9;
-        }
-        else {
+        if(_Bytes < 50 ether) {
             minLevel = 10;
             uint256 whiteListPos = whiteListContract.whiteListPosition(msg.sender);
             maxLevel = 12 - ( ((OGPrivilege == 1) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
         }
+        else if(_Bytes < 100 ether){
+            minLevel = 7;
+            maxLevel = 9;
+        }
+        else if(_Bytes < 200 ether){
+            minLevel = 4;
+            maxLevel = 6;
+        }
+        else if(_Bytes < 300 ether){
+            minLevel = 2;
+            maxLevel = 3;
+        }
+        else if(_Bytes < 400 ether){
+            minLevel = 1;
+            maxLevel = 1;
+        }
+        else {
+            // already set to 0
+        }
 
         for(uint256 i=minLevel; i <= maxLevel; i++){
             if(clearanceLevelsRemaining[i]>0){
-                _count += 1;
+                availableClearanceLevels[i] = clearanceLevelsRemaining[i];
+                total += clearanceLevelsRemaining[i];
             }
         }
 
-        availableClearanceLevels = new uint256[](_count);
-        for(uint256 i=minLevel; i <= maxLevel; i++){
-            if(clearanceLevelsRemaining[i]>0){
-                availableClearanceLevels[_counter] = i;
-                _counter += 1;
-            }
-        }
+        // todo -- potential issues when used externally to get availability
+        require(total > 0, "No clearance levels available for this Byte amount.");
 
         return availableClearanceLevels;
     }
@@ -2227,7 +2304,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
         @param _availableItems -- An array of integers, each representing availibility out of the whole array
         // example: [1,1,2] => gives an array which will yield the following 25%=>0, 25% =>1, 50% 2
       */
-    function _chooseTraitGivenArray(uint256[] memory _availableItems, uint256 _nonce) internal view returns(uint256) {
+    function _chooseTraitGivenArray(uint16[13] memory _availableItems, uint256 _nonce) internal view returns(uint256) {
         uint256 total = 0; // todo -- loop  through and get total
         uint256 summed = 0;
 
@@ -2248,6 +2325,10 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
     }
 
 
+
+
+
+
     ///////////////////////////////////////////////
     ///////////////// todo  BEGIN TEMP TEMP ////
     ///////////////////////////////////////////////
@@ -2260,38 +2341,75 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
         _bulkClaim(_myBytesArray, 1);
     }
 
+    function getTraitTotals(uint256 _trait) external view returns(uint16[13] memory)  {
+        uint256 total =0;
+        uint16[13] memory _myTotals = traitTotals;
+        uint16[13] memory _traitsRemaining;
 
-//    function getTotalAllRemainingFeatures() external view returns(uint256)  {
-//        uint256 total =0;
-//        uint256 xenMax = xenGroupsRemaining.length;
-//        uint256 stMax = securityTerminalsRemaining.length;
-//        for(uint256 i=0; i< 13;i++){
-//            total += tierOneClearanceLevelsRemaining[i] + tierTwoClearanceLevelsRemaining[i]
-//                + stationsRemaining[i] + commandsRemaining[i] + responsesRemaining[i];
-//            if (i < xenMax) {
-//                total += xenGroupsRemaining[i];
-//            }
-//            if (i < stMax) {
-//                total += securityTerminalsRemaining[i];
-//            }
-//
-//        }
-//
-//        return total;
-//    }
+        if(_trait==0) {
+            return clearanceLevelsRemaining;
+        }
+        else if(_trait==1) {
+            for(uint256 i=0; i<13;i++){
+                _myTotals[i] = stationsUsed[i];
+            }
+            return _myTotals;
+        }
+        else if(_trait==2) {
+            for(uint256 i=0; i<13;i++){
+                _myTotals[i] = securityTerminalsUsed[i];
+            }
+            return _myTotals;
+        }
+        else if(_trait==3) {
+            for(uint256 i=0; i<13;i++){
+                _myTotals[i] = xenGroupsUsed[i];
+            }
+            return _myTotals;
+        }
+        else if(_trait==4) {
+            for(uint256 i=0; i<13;i++){
+                _myTotals[i] = commandsUsed[i];
+            }
+            return _myTotals;
+        }
+        else if(_trait==5) {
+            for(uint256 i=0; i<13;i++){
+                _myTotals[i] = responsesUsed[i];
+            }
+            return _myTotals;
+        }
+        else if(_trait==6) {
+            for(uint256 i=0; i<13;i++){
+                _myTotals[i] = insultsUsed[i];
+            }
+            return _myTotals;
+        }
+
+        return _myTotals;
+    }
+
 
     function getCurrentIndex() public view returns(uint256){
         return currentIndex;
     }
+
+    //////////////////////////////////////
     /// todo //////////////////// END TEMP
     ////////////////////////////////////////
 
+
+
+
+
+
+
     function adminBulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) external onlyOwner { // removed payable
         require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
-        require(blackMetaMintsRemaining >= _quantity_to_mint, "_quantity_to_mint exceeds availability.");
-        require(adminBulkClaimCalledAmount ==0, "Already called.");
+        require(currentIndex + _quantity_to_mint <= maxSupply, "_quantity_to_mint exceeds availability.");
+//        require(adminBulkClaimCalledAmount ==0, "Already called."); // todo add in after testing
         adminBulkClaimCalledAmount += 1;
-        blackMetaMintsRemaining -= 1;
+//        blackMetaMintsRemaining -= 1;
 
         _bulkClaim(_BytesReceived, _quantity_to_mint);
     }
@@ -2300,24 +2418,25 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
     // todo -- consider preminting all of these and uploading them into the mapping by admin function--called only once
     function _bulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) internal { // removed payable
         require(mintingPermitted==1, "Minting is currently not permitted.");
-        require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
+//        require(_BytesReceived.length == _quantity_to_mint, "Argument mismatch.");
 
         uint256 _requiredBytesTotal;
         for(uint256 i = 0;i < _BytesReceived.length; i++){
             _requiredBytesTotal += _BytesReceived[i];
         }
-        uint256 _nonce;
+//        uint256 _nonce;
 
-        require(msg.sender == owner() || BytesERC20.balanceOf(msg.sender) >= _requiredBytesTotal, "Insufficient Byte balance");
+//        require(msg.sender == owner() || BytesERC20.balanceOf(msg.sender) >= _requiredBytesTotal, "Insufficient Byte balance");
 
         if(_requiredBytesTotal > 0 && msg.sender != owner()){
             require(BytesERC20.balanceOf(msg.sender) >= _requiredBytesTotal, "Insufficient Byte balance");
             require(BytesERC20.transferFrom(msg.sender, address(this), _requiredBytesTotal), "Failed to transfer Bytes");
         }
 
-        uint256[] memory availableClearanceLevelsByPosition;
-        uint256[] memory _availClearanceLevels;
-        uint256 whiteListPos;
+//        uint256[] memory availableClearanceLevelsByPosition;
+        uint16[13] memory availableClearanceLevelsByPosition;
+//        uint256[] memory _availClearanceLevels;
+//        uint256 whiteListPos;
 
         Data memory _myData = Data( {
             clearanceLevel:0,
@@ -2330,21 +2449,76 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
             rarity:0
         });
 
+        uint256[6] memory traitSelections;
+        uint16[13] memory _availClearanceLevels;
+//        bytes memory hashString;
+        uint256 pseudoRand;
+        uint256 pseudoRandSection;
+        uint256 total;
+
         for(uint256 i=0;i<_quantity_to_mint;i++){
             // returns list of positions within clearanceLevels that are available--not amount available
-            availableClearanceLevelsByPosition = _getAvailableClearanceLevelsGivenBytes(_BytesReceived[i]); // references
-            require(availableClearanceLevelsByPosition.length > 0, "Minting unavailable for that amount.");
-
-            _availClearanceLevels = new uint256[](13);
-            for(uint256 j=0;j < availableClearanceLevelsByPosition.length;j++){
-                _availClearanceLevels[availableClearanceLevelsByPosition[j]] = clearanceLevelsRemaining[availableClearanceLevelsByPosition[j]];
+//            availableClearanceLevelsByPosition = _getAvailableClearanceLevelsGivenBytesNew(_BytesReceived[i]); // references
+//            require(availableClearanceLevelsByPosition.length > 0, "Minting unavailable for that amount.");
+            if(i==0){
+                _availClearanceLevels = _getAvailableClearanceLevelsGivenBytesNew(_BytesReceived[i]);
             }
+            else {
+                _availClearanceLevels[_myData.clearanceLevel] -= 1; // reduce by one
+            }
+//            for(uint256 j=0;j < availableClearanceLevelsByPosition.length;j++){
+//                _availClearanceLevels[availableClearanceLevelsByPosition[j]] = clearanceLevelsRemaining[availableClearanceLevelsByPosition[j]];
+//            }
 
-            _myData.clearanceLevel = _chooseTraitGivenArray(_availClearanceLevels, _nonce);
-            _nonce += 1;
+            _myData.clearanceLevel = _chooseTraitGivenArray(_availClearanceLevels, i);
             clearanceLevelsRemaining[_myData.clearanceLevel] -= 1;
 
-            // bitpacking these might be less gas costly
+//    uint256[13] private traitTotals = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+
+
+
+            /////////////////
+            /// New Way  ////
+            /////////////////
+
+//            hashString = (abi.encodePacked(block.timestamp, msg.sender, i));
+            pseudoRand = uint256(keccak256((abi.encodePacked(block.timestamp, msg.sender, i))));// % 3000;
+
+            for(uint256 j = 0; j< 6; j++){
+                pseudoRandSection = (pseudoRand / ((10^4)^j)) % 3000;
+                total = 0;
+                for(uint256 k = 12; k>=0;k--){ // Should save gas
+                    total += traitTotals[k];
+                    if(pseudoRandSection < total){
+                        traitSelections[j] = k;
+                        break;
+                    }
+                }
+            }
+
+//            _myData.clearanceLevel = traitSelections[0];
+            _myData.station = traitSelections[0];
+            _myData.securityTerminal = traitSelections[1];
+            _myData.xenGroup = traitSelections[2];
+            _myData.command = traitSelections[3];
+            _myData.response = traitSelections[4];
+            _myData.insult = traitSelections[5];
+
+
+
+            // todo remove
+            stationsUsed[traitSelections[0]] += 1;
+            securityTerminalsUsed[traitSelections[1]] += 1;
+            xenGroupsUsed[traitSelections[2]] += 1;
+            commandsUsed[traitSelections[3]] += 1;
+            responsesUsed[traitSelections[4]] += 1;
+            insultsUsed[traitSelections[5]] += 1;
+
+
+            ////////////////
+            //// OLD WAY ///
+            ////////////////
+            /*
             _myData.station = _chooseTraitGivenArray(stationsRemaining, _nonce);
             _nonce += 1;
             stationsRemaining[_myData.station] -= 1;
@@ -2363,12 +2537,21 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
             _myData.insult = _chooseTraitGivenArray(insultsRemaining, _nonce);
             _nonce += 1;
             responsesRemaining[_myData.insult] -= 1;
+            */
 
+            /*
             whiteListPos = whiteListContract.whiteListPosition(msg.sender);
             _myData.rarity =  (750 - traitTotals[_myData.clearanceLevel] ) * (10**8)
                 +  (4500 - ( traitTotals[_myData.station] + traitTotals[_myData.securityTerminal] + traitTotals[_myData.xenGroup]
                   + traitTotals[_myData.command] + traitTotals[_myData.response] + traitTotals[_myData.insult] )) * (10**4)
                 +  3000 - (whiteListPos < 3000 ? whiteListPos : 3000);
+            */
+
+            _myData.rarity =  (750 - uint256(traitTotals[_myData.clearanceLevel]) ) * (10**8)
+                +  (4500 - uint256( traitTotals[_myData.station] + traitTotals[_myData.securityTerminal] + traitTotals[_myData.xenGroup]
+                  + traitTotals[_myData.command] + traitTotals[_myData.response] + traitTotals[_myData.insult] )) * (10**4)
+                +  3000 - (currentIndex + i);
+
 
             tokenIdToPackedData[currentIndex + i] = packData(_myData.clearanceLevel, _myData.station, _myData.securityTerminal, _myData.xenGroup, _myData.command, _myData.response, _myData.insult, _myData.rarity);
 //            emit MultipassCreated(tokenCounter, msg.sender, tokenIdToPackedData[tokenCounter], block.timestamp); // todo could make this fire once in bulk, with modification
@@ -2385,10 +2568,11 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable {
       */
     function claim(uint256 _BytesReceived) external payable nonReentrant {
         require(whiteListContract.isWhitelisted(msg.sender)==true, "Not whitelisted");
-        require(blackMetaMintsRemaining > 0, "Limit reached for regular mints.");
+//        require(blackMetaMintsRemaining > 0, "Limit reached for regular mints.");
+        require(currentIndex < maxSupply );
         require(whiteListHasMinted[msg.sender] == 0, "address already minted");
 
-        blackMetaMintsRemaining -= 1;
+//        blackMetaMintsRemaining -= 1;
         whiteListHasMinted[msg.sender] += 1;
 
         uint256[] memory _myBytesArray = new uint256[](1);
