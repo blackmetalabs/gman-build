@@ -3,7 +3,7 @@
 * Founded by @mikedbecker
 * Developed by @daveaneo
 * Advisory by @Thrasher66099
-* 
+* Truly user operated & owned by @blackmeta_
 */
 
 
