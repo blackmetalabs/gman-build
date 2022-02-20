@@ -1747,7 +1747,6 @@ contract Whitelist is Ownable {
 contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
     IERC20 BytesERC20;
-//    IERC721Enumerable BlackMetaIdentityContract;
     Whitelist whiteListContract;
 
     // todo -- create into structure to save space
@@ -1757,9 +1756,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     uint256 private mintingPermitted; // on/off for turning on minting
     uint256 private adminBulkClaimCalledAmount;
 
-//    string private backgroundImageLink;
     string private baseURI;
-//    string private overlayBaselink;
 
     // todo -- create metadata for Default, uninitiated
 
