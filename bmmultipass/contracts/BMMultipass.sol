@@ -1775,6 +1775,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         uint256 rarity; // 0 <= x <= 12
     }
 
+    // todo -- make this happen or delete it
     struct ContractSettings {
         uint256 mintFee; // 0 <= x <= 12
         uint16 maxSupply; // 0 <= x <= 5
@@ -1797,8 +1798,8 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 //    uint16[13] private responsesUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 //    uint16[13] private insultsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    uint16[13] private traitTotals = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
-
+//    uint16[13] private traitTotals = [30, 60, 75, 105, 135, 165, 195, 225, 240, 270, 360, 390, 750];
+    uint16[13] private traitTotals = [40, 80, 120, 150, 195, 225, 255, 270, 285, 300, 320, 340, 420];
 
 //    enum ClearanceLevel {GMan, Board, Director, Operative, LevelNine, LevelEight, LevelSeven, LevelSix, LevelFive,
 //        LevelFour, LevelThree, LevelTwo, LevelOne}
@@ -1809,7 +1810,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         "G-man",
         "Board",
         "Executive",
-        "Black Ops",
+        "Dark Ops",
         "Level 9",
         "Level 8",
         "Level 7",
@@ -1872,9 +1873,9 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     string[13] private commands = [
         "Initiate Chaos Protocol...",
         "Unlock Weapons Cache...",
-        "Disable Shipwide Emergency Access...",
+        "Disable Ship-wide Emergency Access...",
         "Unlock Shuttle Bay 4...",
-        "Unlock The Quarters Of The Captain...",
+        "Unlock Captain's Quarters...",
         "Disable Ship Navigation System...",
         "Engage Aft Thrusters...",
         "Give Me a Sandwich...",
@@ -1891,7 +1892,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         "Facial recognition error: Possum detected.",
         "Knock knock. Who's there? A useless refugee!",
         "Access Approved. Transferring all your ETH now.",
-        "Access Granted. Kidding. It is not.",
+        "Access Granted. Kidding. It's not.",
         "Access Denied. Feels like prom night again?",
         "Access Denied. Welcome back L -- user.",
         "Access Denied. I do not give free re-fills.",
@@ -1902,18 +1903,18 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     ];
 
     string[13] private insults = [
-        "I guess we are letting anyone in now.",
-        "Definitely not making the Black Meta calendar.",
-        "Was going to insult you, then I scanned your ID.",
-        "I would reject you but your mom already has.",
-        "If you are what is left, humanity is screwed.",
-        "Realized daddy's money won't last forever?",
-        "Last I saw you was on - the Axiom?",
-        "Remember, I saw you eat roaches on your knees. ",
-        "I didn't know the 'filthy refugee' style was in.",
-        "Seems your wallet is non-binary -- zeroes only.",
-        "Did you just touch my backspace?",
+        "Couldn't find any friends in the real world?",
         "Another one here for the free toothbrush.",
+        "Did you just touch my backspace?",
+        "Seems your wallet is non-binary -- Zero's only.",
+        "I didn't know the 'filthy refugee' style was in.",
+        "Remember, I saw you eat roaches on your knees.",
+        "Last I saw you was on -- the Axiom?",
+        "Realized daddy's money won't last forever?",
+        "If you're what's left, humanity is screwed.",
+        "I'd reject you but your mom already has.",
+        "Was going to insult you, then I scanned your ID.",
+        "Definitely not making the Black Meta calendar.",
         "I guess we're letting anyone in now."
     ];
 
@@ -2200,29 +2201,35 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         uint256 maxLevel; // higher by reference number
         uint256 total;
 
-        if(_Bytes < 50 ether) {
+        if(_Bytes < 50 ether) { // aiming for 0
             minLevel = 10;
             uint256 whiteListPos = whiteListContract.whiteListPosition(msg.sender);
             maxLevel = 12 - ( ((OGPrivilege == 1) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
         }
-        else if(_Bytes < 100 ether){
+        else if(_Bytes < 100 ether){ // aiming for 50
             minLevel = 7;
             maxLevel = 9;
         }
-        else if(_Bytes < 200 ether){
+        else if(_Bytes < 200 ether){ // aiming for 100
             minLevel = 4;
             maxLevel = 6;
         }
-        else if(_Bytes < 300 ether){
+        else if(_Bytes < 300 ether){ // aiming for 200
             minLevel = 2;
             maxLevel = 3;
         }
-        else if(_Bytes < 400 ether){
+        else if(_Bytes < 400 ether){ // aiming for 300
             minLevel = 1;
             maxLevel = 1;
         }
-        else {
-            // already set to 0
+//        else if(_Bytes < 400 ether){
+//            minLevel = 1;
+//            maxLevel = 1;
+//        }
+        else { // aiming for 400
+            // no need to update
+//            minLevel = 0;
+//            maxLevel = 1;
         }
 
         for(uint256 i=minLevel; i <= maxLevel; i++){
@@ -2727,33 +2734,33 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
              imageURI, '"',
             ', "name": "Black Meta Multipass"',
             // attributes
-            ', "attributes": [{"trait_type": "clearanceLevel", "value": "',
+            ', "attributes": [{"trait_type": "Clearance Level", "value": "',
             clearanceLevels[_myData.clearanceLevel],   '" }'
         ));
 
         json_str = string(abi.encodePacked(json_str,
-            ', {"trait_type": "station", "value": "',
+            ', {"trait_type": "Station", "value": "',
             stations[_myData.station],   '" }',
-            ', {"trait_type": "securityTerminal", "value": "',
+            ', {"trait_type": "Security Terminal", "value": "',
 //            securityTerminals[_myData.securityTerminal],   '" }'
             toString(_myData.securityTerminal + 1),   '" }'
         ));
 
         json_str = string(abi.encodePacked(json_str,
-            ', {"trait_type": "xenGroups", "value": "Xen ',
+            ', {"trait_type": "Xen Groups", "value": "Xen ',
 //            xenGroups[_myData.xenGroup],   '" }',
             toString(_myData.xenGroup + 1),   '" }',
-            ', {"trait_type": "command", "value": "',
+            ', {"trait_type": "Command", "value": "',
             commands[_myData.command],   '" }'
         ));
 
 
         json_str = string(abi.encodePacked(json_str,
-            ', {"trait_type": "response", "value": "',
+            ', {"trait_type": "Response", "value": "',
             responses[_myData.response],   '" }',
-            ', {"trait_type": "insult", "value": "',
-            responses[_myData.insult],   '" }',
-            ', {"trait_type": "rarity", "value": ', // "display_type": "number",
+            ', {"trait_type": "Insult", "value": "',
+            insults[_myData.insult],   '" }',
+            ', {"trait_type": "Rarity", "value": ', // "display_type": "number",
             toString(_myData.rarity),   ' }'
         ));
 
@@ -2813,6 +2820,10 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         mintFee = _mintFee;
     }
 
+    /** @dev Upgrades a clearanceLevel. Used for rewards
+        @param _tokenId -- id of NFT
+        @param _newClearanceLevel -- clearanceLevel to be upgraded to
+    */
     function upgradeClearanceLevel(uint256 _tokenId, uint256 _newClearanceLevel) external onlyOwner {
         Data memory _myData = unpackData(_tokenId);
 //        require(_exists(_tokenId) && _myData.clearanceLevel < _newClearanceLevel, "ISSUES WITH NFT DAAT"); // lesser number is superior
