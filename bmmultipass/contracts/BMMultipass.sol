@@ -2745,9 +2745,9 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     }
 
 
-    ////////////////////////////////////
-    ///////// Helper Functions /////////
-    ////////////////////////////////////
+    /////////////////////////////////////
+    ///////// Helper Functions //////////
+    /////////////////////////////////////
 
     function toString(uint256 value) internal pure returns (string memory) {
         // Inspired by OraclizeAPI's implementation - MIT license
