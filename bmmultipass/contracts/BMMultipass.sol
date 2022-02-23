@@ -17,8 +17,10 @@ import "../interfaces/IERC20.sol";
 import "../interfaces/IERC165.sol";
 import "./helpers/base64.sol";
 import './helpers/ERC721A.sol';
+import './helpers/Ownable.sol';
+import './helpers/Context.sol';
 import './ERC2981Collection.sol';
-//import "contracts/helpers/console.sol";
+import './MerkleWhitelist.sol';
 
 
 /**
@@ -222,91 +224,8 @@ library Strings {
     }
 }
 
-/*
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
 
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
 
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _setOwner(_msgSender());
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
-    }
-
-    function _setOwner(address newOwner) private {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
-}
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -1698,67 +1617,20 @@ contract ERC721A is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable
 
 
 
-
-/**
- * @title Whitelist
- * @dev The Whitelist contract has a whitelist of addresses, and provides basic authorization control functions.
- * @dev This simplifies the implementation of "user permissions".
- */
-contract Whitelist is Ownable {
-    mapping(address => uint256) public whiteList;
-    uint256 public whiteListCount;
-
-    /**
-     * @dev Adds an array of addresses to whitelist
-     * @param _whiteListAdditions array of addresses to add. Ignores doubles.
-     */
-    function addToWhiteList(address[] calldata _whiteListAdditions) external onlyOwner { // todo-- make value for these
-        whiteListCount += 1; // Never decreases, even if address is removed from whitelist
-        for(uint256 i; i < _whiteListAdditions.length; i++){
-            if(whiteList[_whiteListAdditions[i]]==0){
-                whiteList[_whiteListAdditions[i]] = whiteListCount; // this number gives special treatment to first x on whitelist--OG
-            }
-        }
-    }
-
-    /**
-     * @dev Removes an array of addresses to whitelist
-     * @param _whiteListSubtractions array of addresses to remove. Ignores doubles.
-     */
-    function removeFromWhiteList(address[] calldata _whiteListSubtractions) external onlyOwner {
-      for(uint256 i; i < _whiteListSubtractions.length; i++){
-          if(whiteList[_whiteListSubtractions[i]]!=0){
-              whiteList[_whiteListSubtractions[i]] = 0;
-          }
-      }
-    }
-
-    function isWhitelisted(address _addy) external view returns(bool) {
-        return whiteList[_addy] > 0;
-    }
-
-    function whiteListPosition(address _addy) external view returns(uint256){
-        return whiteList[_addy];
-    }
-
-}
-
 //contract BMMultipass is ERC721Enumerable, ReentrancyGuard, Ownable {
 contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
     IERC20 BytesERC20;
     Whitelist whiteListContract;
 
-    uint256 private OGPrivilege = 1; // 0 => False, 1 => True
-    uint256 private mintFee; // Ethereum Fee
-    uint256 private maxSupply = 3000;
-    uint256 private mintingPermitted; // on/off for turning on minting
-    uint256 private adminBulkClaimCalledAmount;
-    uint256 private bypassWhitelist;
+//    uint256 private OGPrivilege = 1; // 0 => False, 1 => True
+//    uint256 private mintFee; // Ethereum Fee
+//    uint256 private maxSupply = 3000;
+//    uint256 private mintingPermitted; // on/off for turning on minting
+//    uint256 private adminBulkClaimCalledAmount;
+//    uint256 private bypassWhitelist;
 
     string private baseURI;
-
-    // todo -- create metadata for Default, uninitiated
 
     mapping(uint256 => uint256) private tokenIdToPackedData; // compressed data for NFT
     mapping(address => uint256) private whiteListHasMinted; // will have values 0, 1, 2 ,3 depending on state (none, first mint, second mint, both mints)
@@ -1776,14 +1648,14 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
     // todo -- make this happen or delete it
     struct ContractSettings {
-        uint256 mintFee; // 0 <= x <= 12
+        uint208 mintFee; // 0 <= x <= 12
         uint16 maxSupply; // 0 <= x <= 5
         bool OGPrivilege;  // 0 <= x <= 12
         bool mintingPermitted; // 0 <= x <= 2
-        bool adminBulkClaimCalledAmount; // 0 <= x <= 12
         bool bypassWhitelist;
     }
 
+    ContractSettings contractSettings;
 
     // used for limiting what traits are minted //
     uint16[13] private clearanceLevelsRemaining = [10, 20, 80, 100, 175, 210, 245, 260, 275, 295, 320, 340, 420]; // remaining after reserved
@@ -2189,8 +2061,9 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
         if(_Bytes < 50 ether) { // aiming for 0
             minLevel = 10;
-            uint256 whiteListPos = whiteListContract.whiteListPosition(msg.sender);
-            maxLevel = 12 - ( ((OGPrivilege == 1) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
+//            uint256 whiteListPos = whiteListContract.whiteListPosition(msg.sender);
+            uint256 whiteListPos = 300; // todo -- impliment OG differently or skip this change
+            maxLevel = 12 - ( ((contractSettings.OGPrivilege == true) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
         }
         else if(_Bytes < 100 ether){ // aiming for 50
             minLevel = 7;
@@ -2220,7 +2093,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
             }
         }
 
-        // todo -- potential issues when used externally to get availability
         require(total > 0, "No clearance levels available for this Byte amount.");
 
         return availableClearanceLevels;
@@ -2233,7 +2105,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         // example: [1,1,2] => gives an array which will yield the following 25%=>0, 25% =>1, 50% 2
       */
     function _chooseTraitGivenArray(uint16[13] memory _availableItems, uint256 _nonce) internal view returns(uint256) {
-        uint256 total = 0; // todo -- loop  through and get total
+        uint256 total = 0;
         uint256 summed = 0;
 
         for(uint256 i=0;i < _availableItems.length; i++){
@@ -2261,7 +2133,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     ///////////////// todo  BEGIN TEMP TEMP ////
     ///////////////////////////////////////////////
 
-    // todo -- remove
     function adminClaim(uint256 _BytesReceived) external onlyOwner {
 //        _claim(_BytesReceived);
         uint256[] memory _myBytesArray = new uint256[](1);
@@ -2314,6 +2185,19 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 //            return _myTotals;
 //        }
 //        return _myTotals;
+//    }
+
+
+//    function myHash() external view returns(bytes32) {
+//        return whiteListContract.myHash(msg.sender);
+//    }
+//
+//    function myHash() external view returns(bytes32) {
+//        return whiteListContract.myEncoding(msg.sender);
+//    }
+
+//    function myRoot(bytes32[] memory _addresses) public view returns(bytes32) {
+//        return whiteListContract.getRootGivenLeafs(_addresses);
 //    }
 
 
@@ -2421,16 +2305,15 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     }
 
 
-    // todo -- remove admin bulk claim
+    // todo -- remove admin bulk claim for launch -- used for testing
     function adminBulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) external onlyOwner { // removed payable
         require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
-        require(currentIndex + _quantity_to_mint <= maxSupply, "_quantity_to_mint exceeds availability.");
-        require(mintingPermitted==1, "Minting is currently not permitted.");
-        adminBulkClaimCalledAmount += 1;
+        require(currentIndex + _quantity_to_mint <= contractSettings.maxSupply, "_quantity_to_mint exceeds availability.");
+        require(contractSettings.mintingPermitted==true, "Minting is currently not permitted.");
+//        adminBulkClaimCalledAmount += 1;
         _bulkClaim(_BytesReceived, _quantity_to_mint);
     }
 
-    // todo -- copy and paste to create _claim
     function _bulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) internal { // removed payable
         uint256 _requiredBytesTotal;
         for(uint256 i = 0;i < _BytesReceived.length; i++){
@@ -2442,7 +2325,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
             require(BytesERC20.transferFrom(msg.sender, address(this), _requiredBytesTotal), "Failed to transfer Bytes");
         }
 
-//        uint16[13] memory availableClearanceLevelsByPosition;
         uint16[13] memory _availClearanceLevels;
         uint256 _myClearanceLevel;
 
@@ -2460,16 +2342,18 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         _safeMint(msg.sender, _quantity_to_mint);
     }
 
-
+    // todo use _whitelist_position as OG
     /** @dev Claims (mint) Black Meta Multipass
         @param _BytesReceived -- Bytes to transfer to contract. Used for minting, higher amounts give better mints.
+        @param _merkleProof -- Merkle proof, computed off chain
       */
-    function claim(uint256 _BytesReceived) external payable nonReentrant { // i don't think non-rentrant needs to be here
-        require(bypassWhitelist == 1 || whiteListContract.isWhitelisted(msg.sender)==true, "Not whitelisted");
-        require(currentIndex < maxSupply );
+    function claim(uint256 _BytesReceived, bytes32[] calldata _merkleProof, uint256 _whitelist_position) external payable nonReentrant { // i don't think non-rentrant needs to be here
+//        require(bypassWhitelist == true || whiteListContract.isWhitelisted(_merkleProof, msg.sender)==true, "Not whitelisted");
+        require(contractSettings.bypassWhitelist == true || whiteListContract.isWhitelisted(msg.sender, _whitelist_position, _merkleProof)==true, "Not whitelisted");
+        require(currentIndex < contractSettings.maxSupply );
         require(whiteListHasMinted[msg.sender] == 0, "address already minted");
-        require(msg.value >= mintFee);
-        require(mintingPermitted==1, "Minting is currently not permitted.");
+        require(msg.value >= contractSettings.mintFee);
+        require(contractSettings.mintingPermitted==true, "Minting is currently not permitted.");
         whiteListHasMinted[msg.sender] += 1;
 
         uint256[] memory _myBytesArray = new uint256[](1);
@@ -2478,7 +2362,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 //        _claim(_BytesReceived);
     }
 
-
+//Replaced by bulkclaim, which didn't have much overhead for single claims
 //    /** @dev Claims (mint) Black Meta Multipass
 //        @param _BytesReceived -- Bytes to transfer to contract. Used for minting, higher amounts give better mints.
 //      */
@@ -2505,17 +2389,35 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         @param _BytesAddress -- Contract Address for Bytes.
         @param _baseURI -- Background Image for tokenUri Image
       */
-    constructor(address _BytesAddress, address _whiteListAddress, string memory _baseURI)
-            ERC721A("Black Meta Multipass", "BMPASS") Ownable() ERC2981Collection(msg.sender, 750) {
+    constructor(address _BytesAddress, address _whiteListAddress, address _royaltiesCollector, string memory _baseURI)
+            ERC721A("Black Meta Multipass", "BMPASS") Ownable() ERC2981Collection(_royaltiesCollector, 750) {
 //        bytesContractAddress = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
 //        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
         BytesERC20 = IERC20(_BytesAddress);
         whiteListContract = Whitelist(_whiteListAddress);
         baseURI = _baseURI;
-        mintingPermitted = 1;
-        mintFee = 0.05 ether;
+//        mintingPermitted = 1;
+//        mintFee = 0.05 ether;
 
-        // mint 250 black NFTs //
+//    struct ContractSettings {
+//        uint208 mintFee; // 0 <= x <= 12
+//        uint16 maxSupply; // 0 <= x <= 5
+//        bool OGPrivilege;  // 0 <= x <= 12
+//        bool mintingPermitted; // 0 <= x <= 2
+//        bool bypassWhitelist;
+//    }
+
+        // todo -- check if mint fee works
+        contractSettings = ContractSettings({
+            mintFee: 0.05 ether,
+            maxSupply: 3000,
+            OGPrivilege: true,
+            mintingPermitted: true,
+            bypassWhitelist: true
+        });
+
+        // mint 250 blank NFTs for team. These are initiated by team members at their own cost //
+        // they have a present clearanceLevel according to their tokenId //
         _safeMint(msg.sender, 250);
     }
 
@@ -2632,7 +2534,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
         // OVERLAY MUST BE SAME FORMAT (WEBP)
         string memory colorOverlay = string(abi.encodePacked(
-                "%3Cimage xlink:href='", baseURI ,"/", toString(_myData.clearanceLevel) ,  ".webp' width='600' height='600' /%3E"
+                "%3Cimage xlink:href='", baseURI ,"/", toString(_myData.clearanceLevel) ,  ".png' width='600' height='600' /%3E"
             ));
 
         string memory textOverlay="";
@@ -2654,7 +2556,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         string memory mainImage;
 
         mainImage = string(abi.encodePacked(
-            "%3Cimage xlink:href='", baseURI ,"/a.webp' width='600' height='600' /%3E"
+            "%3Cimage xlink:href='", baseURI ,"/a.png' width='600' height='600' /%3E"
         ));
 
         string memory SVG = string(abi.encodePacked(
@@ -2708,12 +2610,9 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         Data memory _myData = unpackData(_tokenId);
         string memory json_str = string(abi.encodePacked(
             '{"description": "The ticket into the Black Meta Multiverse."',
-            ', "external_url": "https://blackmeta.site"', // todo --actual link
+            ', "external_url": "https://blackmeta.site"',
             ', "image": "', // to do -- check on this
-               baseURI, "/a", toString(_myData.clearanceLevel),  '.webp"',
-//            ', "image": "https://gateway.pinata.cloud/ipfs/QmYrZKhSC9gpT8bQAwc1GQ4pdK2HXdNPi9dTxfFqPxoudv"', // to do -- check on this
-//            ', "image_data": "', //
-//             imageURI, '"',
+               baseURI, "/a", toString(_myData.clearanceLevel),  '.png"',
             ', "data_uri": "', //
              imageURI, '"',
             ', "name": "Black Meta Multipass"',
@@ -2782,19 +2681,36 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         whiteListContract = Whitelist(_contractAddress);
     }
 
-    function setOGPrivilege(uint256 _OGPrivilege) external onlyOwner {
-        require(_OGPrivilege < 2 && OGPrivilege != _OGPrivilege, "must be 1 or 0, and not same as current.");
-        OGPrivilege = _OGPrivilege;
+//    function setOGPrivilege(uint256 _OGPrivilege) external onlyOwner {
+//        require(_OGPrivilege < 2 && OGPrivilege != _OGPrivilege, "must be 1 or 0, and not same as current.");
+//        OGPrivilege = _OGPrivilege;
+//    }
+
+//    function setMintingPermitted(uint256 _mintingPermitted) external onlyOwner {
+//        require(mintingPermitted < 2 && mintingPermitted != _mintingPermitted, "must be 1 or 0, and not same as current.");
+//        mintingPermitted = _mintingPermitted;
+//    }
+//
+
+//    function setBypassWhitelist(uint256 _bypassWhitelist) external onlyOwner {
+//        require(bypassWhitelist < 2 && bypassWhitelist != _bypassWhitelist, "must be 1 or 0, and not same as current.");
+//        bypassWhitelist = _bypassWhitelist;
+//    }
+
+
+    function setOGPrivilege(bool _OGPrivilege) external onlyOwner {
+        require(contractSettings.OGPrivilege != _OGPrivilege, "must be 1 or 0, and not same as current.");
+        contractSettings.OGPrivilege = _OGPrivilege;
     }
 
-    function setMintingPermitted(uint256 _mintingPermitted) external onlyOwner {
-        require(mintingPermitted < 2 && mintingPermitted != _mintingPermitted, "must be 1 or 0, and not same as current.");
-        mintingPermitted = _mintingPermitted;
+    function setMintingPermitted(bool _mintingPermitted) external onlyOwner {
+        require(contractSettings.mintingPermitted != _mintingPermitted, "must be 1 or 0, and not same as current.");
+        contractSettings.mintingPermitted = _mintingPermitted;
     }
 
-    function setBypassWhitelist(uint256 _bypassWhitelist) external onlyOwner {
-        require(bypassWhitelist < 2 && bypassWhitelist != _bypassWhitelist, "must be 1 or 0, and not same as current.");
-        bypassWhitelist = _bypassWhitelist;
+    function setBypassWhitelist(bool _bypassWhitelist) external onlyOwner {
+        require(contractSettings.bypassWhitelist != _bypassWhitelist, "must be 1 or 0, and not same as current.");
+        contractSettings.bypassWhitelist = _bypassWhitelist;
     }
 
 
@@ -2806,8 +2722,12 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         baseURI = _baseURI;
     }
 
+    //  2^208 - 1
+    /** @dev sets mint fee in ETH for all mints
+        @param _mintFee -- ETH required to mint, must not exceed 2^208 -1 or overflow
+    */
     function setMintFee(uint256 _mintFee) external onlyOwner {
-        mintFee = _mintFee;
+        contractSettings.mintFee = uint208(_mintFee);
     }
 
     /** @dev Upgrades a clearanceLevel. Used for rewards
