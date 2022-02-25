@@ -11,20 +11,31 @@ import './helpers/Ownable.sol';
  * @dev This simplifies the implementation of "user permissions".
  */
 contract Whitelist is Ownable {
-    mapping(address => uint256) public whiteList;
-    uint256 public whiteListCount;
+//    mapping(address => uint256) public whiteList;
+//    uint256 public whiteListCount;
+//    bytes32 public merkleRoot;
+    bytes32[] public rootHash;
 
-    bytes32 public merkleRoot;
-    bytes32[] public _rootHash;
 
+   constructor(bytes32[] memory _rootHash) public {
+       rootHash = _rootHash;
+   }
+
+//    /**
+//     * @dev Adds an array of addresses to whitelist
+//     * @param _merkleRoot new merkle root
+//     */
+//    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+//        merkleRoot = _merkleRoot;
+//    }
+//
     /**
      * @dev Adds an array of addresses to whitelist
      * @param _merkleRoot new merkle root
      */
-    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
-        merkleRoot = _merkleRoot;
+    function addToMerkleRootArray(bytes32 _merkleRoot) external onlyOwner {
+        rootHash.push(_merkleRoot);
     }
-
 
     // todo --consider implementation, adding to array versus updating
     /**
@@ -32,7 +43,7 @@ contract Whitelist is Ownable {
      * @param _merkleRootArray new merkle root array
      */
     function setMerkleRootArray(bytes32[] calldata _merkleRootArray) external onlyOwner {
-        _rootHash = _merkleRootArray;
+        rootHash = _merkleRootArray;
     }
 
 
@@ -42,23 +53,19 @@ contract Whitelist is Ownable {
      * @param _addy msg.sender
      */
     function isWhitelisted(address _addy, uint256 _index, bytes32[] memory _merkleProof) public view returns(bool) {
-        return true; // todo -- temporary
+//        return true; // todo -- temporary
+
+// Original
 //        bytes32 leaf = keccak256(abi.encodePacked(_addy));
 //        return(MerkleProof.verify(_merkleProof, merkleRoot, leaf));
+
+// Modified to include index
+//        uint256 amount = 1;
+//        bytes32 leaf = keccak256(abi.encodePacked(_index, _addy, amount));
+//        return(MerkleProof.verify(_merkleProof, rootHash[0], leaf));
+
+// Thrasher's version
         return whitelistValidated(_addy, _index, _merkleProof);
-    }
-
-    function returnSender(address _myAddress) public view returns(address) {
-        return _myAddress;
-    }
-
-    function myHash(address _myAddress) public view returns(bytes32) {
-        bytes32 leaf = keccak256(abi.encodePacked(_myAddress));
-        return leaf;
-    }
-
-    function myEncoding(address _myAddress) public view returns(bytes memory) {
-        return abi.encodePacked(_myAddress);
     }
 
 
@@ -78,20 +85,43 @@ contract Whitelist is Ownable {
             }
 
             // Check the merkle proof against the root hash array
-            for(uint256 i = 0; i < _rootHash.length; i++)
+            for(uint256 i = 0; i < rootHash.length; i++)
             {
-                if (node == _rootHash[i])
+                if (node == rootHash[i])
                 {
                     return true;
                 }
             }
-
             return false;
         }
 
 
-//    function getRootGivenLeafs(bytes32[] memory _addys)public pure returns (bytes32 value) {
-//        return(MerkleProof.getRootGivenLeafs(_addys));
-//    }
+    /**
+     * @dev Returns (isOneWhitelist, isVIP) -- assumes vip is within rootHash[0]
+     */
+    function isWhitelistedAndVIP(address wallet, uint256 index, bytes32[] memory proof) internal view returns (bool, bool) {
+            uint256 amount = 1;
 
+            // Compute the merkle root
+            bytes32 node = keccak256(abi.encodePacked(index, wallet, amount));
+            uint256 path = index;
+            for (uint256 i = 0; i < proof.length; i++) {
+                if ((path & 0x01) == 1) {
+                    node = keccak256(abi.encodePacked(proof[i], node));
+                } else {
+                    node = keccak256(abi.encodePacked(node, proof[i]));
+                }
+                path /= 2;
+            }
+
+            // Check the merkle proof against the root hash array
+            for(uint256 i = 0; i < rootHash.length; i++)
+            {
+                if (node == rootHash[i])
+                {
+                    return (true, i==0);
+                }
+            }
+            return (false, false);
+        }
 }

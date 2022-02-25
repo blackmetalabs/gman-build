@@ -105,9 +105,9 @@ def test_on_merkle(data_list):
 
 
 # data_list = ['0xa9fB5C3F2fD89122b1da1C1e7245f6ED5732B881', '0x6ADe6a2BDfBDa76C4555005eE7Dd7DcDE571D2a8']
-data_list = ['0x0063046686E46Dc6F15918b61AE2B121458534a5', '0x6ADe6a2BDfBDa76C4555005eE7Dd7DcDE571D2a8','0x66ab6d9362d4f35596279692f0251db635165871,']
+# data_list = ['0x0063046686E46Dc6F15918b61AE2B121458534a5', '0x6ADe6a2BDfBDa76C4555005eE7Dd7DcDE571D2a8','0x66ab6d9362d4f35596279692f0251db635165871,']
 # print(f'keccaked first element: {hash_with_keccak(data_list[0])}')
-compare(data_list)
+# compare(data_list)
 # print(f'\ntesting....')
 # test_on_merkle(data_list)
 # res = test_on_merkle(data_list)
