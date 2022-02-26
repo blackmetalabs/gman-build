@@ -1652,14 +1652,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     // used for limiting what traits are minted //
     uint16[13] private clearanceLevelsRemaining = [10, 20, 80, 100, 175, 210, 245, 260, 275, 295, 320, 340, 420]; // remaining after reserved
 
-//    // todo -- remove, used for testing purposes
-//    uint16[13] private stationsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-//    uint16[13] private securityTerminalsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-//    uint16[13] private xenGroupsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-//    uint16[13] private commandsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-//    uint16[13] private responsesUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-//    uint16[13] private insultsUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
     uint16[13] private traitTotals = [40, 80, 120, 150, 195, 225, 255, 270, 285, 300, 320, 340, 420];
 
 //    enum ClearanceLevel {GMan, Board, Director, Operative, LevelNine, LevelEight, LevelSeven, LevelSix, LevelFive,
@@ -2017,7 +2009,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
         if(_Bytes < 50 ether) { // aiming for 0
             minLevel = 10;
-//            uint256 whiteListPos = 300; // todo -- impliment OG differently or skip this change
+//            uint256 whiteListPos = 300;
 //            maxLevel = 12 - ( ((contractSettings.OGPrivilege == true) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
             maxLevel = 12;
         }
@@ -2171,7 +2163,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     }
 
 
-//    // todo -- remove admin bulk claim for launch -- used for testing
+
 //    function adminBulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) external onlyOwner { // removed payable
 //        require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
 //        require(currentIndex + _quantity_to_mint <= contractSettings.maxSupply, "_quantity_to_mint exceeds availability.");
@@ -2207,7 +2199,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         _safeMint(msg.sender, _quantity_to_mint);
     }
 
-    // todo use _whitelist_position as OG
+
     /** @dev Claims (mint) Black Meta Multipass
         @param _BytesReceived -- Bytes to transfer to contract. Used for minting, higher amounts give better mints.
         @param _merkleProof -- Merkle proof, computed off chain
@@ -2240,7 +2232,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         whiteListContract = Whitelist(_whiteListAddress);
         baseURI = _baseURI;
 
-        // todo -- check if mint fee works
         contractSettings = ContractSettings({
             mintFee: 0, //0.05 ether,
             maxSupply: 3000,

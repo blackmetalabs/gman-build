@@ -37,7 +37,6 @@ contract Whitelist is Ownable {
         rootHash.push(_merkleRoot);
     }
 
-    // todo --consider implementation, adding to array versus updating
     /**
      * @dev Adds an array of addresses to whitelist
      * @param _merkleRootArray new merkle root array
@@ -53,7 +52,6 @@ contract Whitelist is Ownable {
      * @param _addy msg.sender
      */
     function isWhitelisted(address _addy, uint256 _index, bytes32[] memory _merkleProof) public view returns(bool) {
-//        return true; // todo -- temporary
 
 // Original
 //        bytes32 leaf = keccak256(abi.encodePacked(_addy));
