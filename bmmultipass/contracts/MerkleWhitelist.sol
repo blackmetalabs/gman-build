@@ -96,32 +96,32 @@ contract Whitelist is Ownable {
         }
 
 
-    /**
-     * @dev Returns (isOneWhitelist, isVIP) -- assumes vip is within rootHash[0]
-     */
-    function isWhitelistedAndVIP(address wallet, uint256 index, bytes32[] memory proof) internal view returns (bool, bool) {
-            uint256 amount = 1;
-
-            // Compute the merkle root
-            bytes32 node = keccak256(abi.encodePacked(index, wallet, amount));
-            uint256 path = index;
-            for (uint256 i = 0; i < proof.length; i++) {
-                if ((path & 0x01) == 1) {
-                    node = keccak256(abi.encodePacked(proof[i], node));
-                } else {
-                    node = keccak256(abi.encodePacked(node, proof[i]));
-                }
-                path /= 2;
-            }
-
-            // Check the merkle proof against the root hash array
-            for(uint256 i = 0; i < rootHash.length; i++)
-            {
-                if (node == rootHash[i])
-                {
-                    return (true, i==0);
-                }
-            }
-            return (false, false);
-        }
+//    /**
+//     * @dev Returns (isOneWhitelist, isVIP) -- assumes vip is within rootHash[0]
+//     */
+//    function isWhitelistedAndVIP(address wallet, uint256 index, bytes32[] memory proof) internal view returns (bool, bool) {
+//            uint256 amount = 1;
+//
+//            // Compute the merkle root
+//            bytes32 node = keccak256(abi.encodePacked(index, wallet, amount));
+//            uint256 path = index;
+//            for (uint256 i = 0; i < proof.length; i++) {
+//                if ((path & 0x01) == 1) {
+//                    node = keccak256(abi.encodePacked(proof[i], node));
+//                } else {
+//                    node = keccak256(abi.encodePacked(node, proof[i]));
+//                }
+//                path /= 2;
+//            }
+//
+//            // Check the merkle proof against the root hash array
+//            for(uint256 i = 0; i < rootHash.length; i++)
+//            {
+//                if (node == rootHash[i])
+//                {
+//                    return (true, i==0);
+//                }
+//            }
+//            return (false, false);
+//        }
 }

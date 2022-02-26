@@ -2017,8 +2017,9 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
         if(_Bytes < 50 ether) { // aiming for 0
             minLevel = 10;
-            uint256 whiteListPos = 300; // todo -- impliment OG differently or skip this change
-            maxLevel = 12 - ( ((contractSettings.OGPrivilege == true) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
+//            uint256 whiteListPos = 300; // todo -- impliment OG differently or skip this change
+//            maxLevel = 12 - ( ((contractSettings.OGPrivilege == true) && (whiteListPos != 0) && (whiteListPos < 251) ) ? 1 : 0);
+            maxLevel = 12;
         }
         else if(_Bytes < 100 ether){ // aiming for 50
             minLevel = 7;
@@ -2170,13 +2171,13 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     }
 
 
-    // todo -- remove admin bulk claim for launch -- used for testing
-    function adminBulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) external onlyOwner { // removed payable
-        require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
-        require(currentIndex + _quantity_to_mint <= contractSettings.maxSupply, "_quantity_to_mint exceeds availability.");
-        require(contractSettings.mintingPermitted==true, "Minting is currently not permitted.");
-        _bulkClaim(_BytesReceived, _quantity_to_mint);
-    }
+//    // todo -- remove admin bulk claim for launch -- used for testing
+//    function adminBulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) external onlyOwner { // removed payable
+//        require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
+//        require(currentIndex + _quantity_to_mint <= contractSettings.maxSupply, "_quantity_to_mint exceeds availability.");
+//        require(contractSettings.mintingPermitted==true, "Minting is currently not permitted.");
+//        _bulkClaim(_BytesReceived, _quantity_to_mint);
+//    }
 
     function _bulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) internal { // removed payable
         uint256 _requiredBytesTotal;
@@ -2241,7 +2242,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
         // todo -- check if mint fee works
         contractSettings = ContractSettings({
-            mintFee: 0.05 ether,
+            mintFee: 0, //0.05 ether,
             maxSupply: 3000,
             OGPrivilege: true,
             mintingPermitted: true,
@@ -2531,6 +2532,15 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     function setBaseURI(string memory _baseURI) external onlyOwner {
         baseURI = _baseURI;
     }
+
+    function setRoyaltyPercent(uint256 _percentage) external onlyOwner {
+        _setRoyaltyPercent(_percentage);
+    }
+
+    function setRoyaltyAddress(address _receiver) external onlyOwner {
+        _setRoyaltyAddress(_receiver);
+    }
+
 
     /** @dev sets mint fee in ETH for all mints
         @param _mintFee -- ETH required to mint, must not exceed 2^208 -1 or overflow
