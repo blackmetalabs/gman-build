@@ -1626,24 +1626,24 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     string private baseURI;
 
     mapping(uint256 => uint256) private tokenIdToPackedData; // compressed data for NFT
-    mapping(address => uint256) private whiteListHasMinted; // will have values 0, 1, 2 ,3 depending on state (none, first mint, second mint, both mints)
+    mapping(address => uint256) private whiteListHasMinted;
 
     struct Data {
-        uint256 clearanceLevel;  // 0 <= x <= 12
-        uint256 station; // 0 <= x <= 12
-        uint256 securityTerminal; // 0 <= x <= 5
-        uint256 xenGroup; // 0 <= x <= 2
-        uint256 command; // 0 <= x <= 12
-        uint256 response; // 0 <= x <= 12
-        uint256 insult; // 0 <= x <= 12
-        uint256 rarity; // 0 <= x <= 12
+        uint256 clearanceLevel;
+        uint256 station;
+        uint256 securityTerminal;
+        uint256 xenGroup;
+        uint256 command;
+        uint256 response;
+        uint256 insult;
+        uint256 rarity;
     }
 
     struct ContractSettings {
-        uint208 mintFee; // 0 <= x <= 12
-        uint16 maxSupply; // 0 <= x <= 5
-        bool OGPrivilege;  // 0 <= x <= 12
-        bool mintingPermitted; // 0 <= x <= 2
+        uint208 mintFee;
+        uint16 maxSupply;
+        bool OGPrivilege;
+        bool mintingPermitted;
         bool bypassWhitelist;
     }
 
@@ -1653,11 +1653,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     uint16[13] private clearanceLevelsRemaining = [10, 20, 80, 100, 175, 210, 245, 260, 275, 295, 320, 340, 420]; // remaining after reserved
 
     uint16[13] private traitTotals = [40, 80, 120, 150, 195, 225, 255, 270, 285, 300, 320, 340, 420];
-
-//    enum ClearanceLevel {GMan, Board, Director, Operative, LevelNine, LevelEight, LevelSeven, LevelSix, LevelFive,
-//        LevelFour, LevelThree, LevelTwo, LevelOne}
-
-//    enum DataProperties {clearanceLevel, station, securityTerminal, xenGroup, command, response, insult, rarity, totals}
 
     string[13] private clearanceLevels = [
         "G-man",
@@ -1783,13 +1778,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     ////// Bit Packing Functions /////
     //////////////////////////////////
 
-//    /** @dev Packs 6 uints from data structure into 1 uint to save space (96, 96, 32, 8, 8, 8) -> 256
-//        @param _myData -- data structure holding attributes of NFT
-//    */
-//    function packDataStructure(Data memory _myData) internal pure returns (uint256){
-//        return packData(_myData.clearanceLevel, _myData.station, _myData.securityTerminal, _myData.xenGroup, _myData.command, _myData.response, _myData.rarity);
-//    }
-
     /** @dev Packs 5 uints into 1 uint to save space () -> 256
         @param _clearanceLevel -- clearance level of NFT
       */
@@ -1818,7 +1806,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         count += 8;
 
         ret |= _rarity << count;
-        count += 128; // have not calculated needed size
+        count += 128;
 
         return ret;
     }
@@ -1846,23 +1834,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
 
         return Data(_clearanceLevel, _station, _securityTerminal, _xenGroup, _command, _response, _insult, _rarity);
     }
-
-//    function verifyPacking() external view returns(bool){
-//        uint256 compressed = packData(1,2,3,4,5,6,7,12345);
-//        Data memory _myData = _unpackData(compressed);
-//
-//        if(
-//            _myData.clearanceLevel == 1 &&
-//            _myData.station == 2 &&
-//            _myData.securityTerminal == 3 &&
-//            _myData.xenGroup == 4 &&
-//            _myData.command == 5 &&
-//            _myData.response == 6 &&
-//            _myData.insult == 7 &&
-//            _myData.rarity == 12345
-//        ) { return true;}
-//        else {return false;}
-//    }
 
 
     //////////////////////////////////
@@ -1966,7 +1937,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     ///////// Core Functions /////////
     //////////////////////////////////
 
-
     /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
       */
     function getAvailableClearanceLevels() view external returns(uint16[13] memory) {
@@ -1974,7 +1944,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     }
 
 
-    // todo -- remove this on mainnet launch?
     /** @dev gets Returns a array of integers representing the index of every clearanceLevel that is available
         @param _Bytes -- Bytes are burned in the mint, but not here. This is just for obtaining availability
       */
@@ -2117,7 +2086,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
     }
 
 
-
     /** @dev takes a blank NFT and gives it stats. For the 250 Team mints, it gives it a clearance level
         @param _tokenId id of token
       */
@@ -2162,16 +2130,7 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
         createDataGivenClearanceLevel(_clearanceLevel, _tokenId);
     }
 
-
-
-//    function adminBulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) external onlyOwner { // removed payable
-//        require(_BytesReceived.length == _quantity_to_mint && _quantity_to_mint > 0, "Argument mismatch.");
-//        require(currentIndex + _quantity_to_mint <= contractSettings.maxSupply, "_quantity_to_mint exceeds availability.");
-//        require(contractSettings.mintingPermitted==true, "Minting is currently not permitted.");
-//        _bulkClaim(_BytesReceived, _quantity_to_mint);
-//    }
-
-    function _bulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) internal { // removed payable
+    function _bulkClaim(uint256[] memory _BytesReceived, uint256 _quantity_to_mint) internal {
         uint256 _requiredBytesTotal;
         for(uint256 i = 0;i < _BytesReceived.length; i++){
             _requiredBytesTotal += _BytesReceived[i];
@@ -2226,8 +2185,6 @@ contract BMMultipass is ERC721A, ReentrancyGuard, Ownable, ERC2981Collection {
       */
     constructor(address _BytesAddress, address _whiteListAddress, address _royaltiesCollector, string memory _baseURI)
             ERC721A("Black Meta Multipass", "BMPASS") Ownable() ERC2981Collection(_royaltiesCollector, 750) {
-//        bytesContractAddress = 0x7d647b1A0dcD5525e9C6B3D14BE58f27674f8c95;
-//        citizenContractAddress = 0xb668beB1Fa440F6cF2Da0399f8C28caB993Bdd65; // on ETH main net
         BytesERC20 = IERC20(_BytesAddress);
         whiteListContract = Whitelist(_whiteListAddress);
         baseURI = _baseURI;

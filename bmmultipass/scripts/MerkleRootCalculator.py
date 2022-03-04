@@ -26,7 +26,7 @@ def merkleCalculator(hashList):
         return hashList[0]
     newHashList = []
     # Process pairs. For odd length, the last is skipped
-    for i in range(0, len(hashList) - 1, 2):
+    for i in range(0, len(hashList) - 2):
         newHashList.append(hashIt(hashList[i], hashList[i + 1]))
     if len(hashList) % 2 == 1:  # odd, hash last item twice
         newHashList.append(hashIt(hashList[-1], hashList[-1]))
